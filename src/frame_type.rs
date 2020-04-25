@@ -32,8 +32,8 @@ impl TryFrom<&mut Bytes> for FrameType {
         if bytes.len() < 1 {
             return Err(FrameTypeFromError::InsufficientBytes);
         }
-        let bytes = bytes.split_to(1);
-        let r#u8 = u8::from_be_bytes([bytes[0]]);
+        let b = bytes.split_to(1);
+        let r#u8 = u8::from_be_bytes([b[0]]);
         let r#type = Self::try_from(r#u8).map_err(|_| FrameTypeFromError::Invalid)?;
         Ok(r#type)
     }

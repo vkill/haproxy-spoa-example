@@ -30,8 +30,8 @@ impl TryFrom<&mut Bytes> for FrameFlags {
         if bytes.len() < 4 {
             return Err(FrameFlagsFromError::InsufficientBytes);
         }
-        let bytes = bytes.split_to(4);
-        let r#u32 = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+        let b = bytes.split_to(4);
+        let r#u32 = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
         let flags = FrameFlags(r#u32.reverse_bits());
 
         if flags.is_abort() {
@@ -51,6 +51,12 @@ mod tests {
 
     #[test]
     fn test_from() -> anyhow::Result<()> {
+        let mut bytes = Bytes::from_static(b"\0\0\0\x00");
+        let bytes = &mut bytes;
+        let frame_flags: FrameFlags = bytes.try_into()?;
+        assert_eq!(frame_flags.is_fin(), false);
+        assert_eq!(frame_flags.is_abort(), false);
+
         let mut bytes = Bytes::from_static(b"\0\0\0\x01");
         let bytes = &mut bytes;
         let frame_flags: FrameFlags = bytes.try_into()?;

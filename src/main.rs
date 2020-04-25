@@ -8,6 +8,9 @@ use futures_codec::Framed;
 use log::*;
 use std::convert::TryInto;
 
+mod varint;
+pub use varint::{Varint, VarintFromError};
+
 mod frame_codec;
 pub use frame_codec::FrameCodec;
 mod frame_type;
