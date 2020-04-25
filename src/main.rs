@@ -3,18 +3,31 @@ use async_std::{
     prelude::*,
     task,
 };
-use bytes::BytesMut;
+use futures::TryStreamExt;
+use futures_codec::Framed;
 use log::*;
+use std::convert::TryInto;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+mod frame_codec;
+pub use frame_codec::FrameCodec;
+mod frame_type;
+pub use frame_type::{FrameType, FrameTypeFromError};
+mod frame_flags;
+pub use frame_flags::{FrameFlags, FrameFlagsFromError};
+mod frame_storage;
+pub use frame_storage::{FrameStorage, FrameStorageFromError};
+mod frame;
+pub use frame::{Frame, FrameNewError};
+mod frames;
+pub use frames::*;
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     task::block_on(accept_loop("127.0.0.1:6001"))
 }
 
-async fn accept_loop(addr: impl ToSocketAddrs) -> Result<()> {
+async fn accept_loop(addr: impl ToSocketAddrs) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
 
     let mut incoming = listener.incoming();
@@ -24,7 +37,7 @@ async fn accept_loop(addr: impl ToSocketAddrs) -> Result<()> {
 
         task::spawn(async move {
             if let Err(e) = connection_loop(stream).await {
-                error!("{:?}", e)
+                error!("connection error: {:?}", e)
             }
         });
     }
@@ -32,23 +45,18 @@ async fn accept_loop(addr: impl ToSocketAddrs) -> Result<()> {
     Ok(())
 }
 
-const U32_LENGTH: usize = std::mem::size_of::<u32>();
+async fn connection_loop(stream: TcpStream) -> anyhow::Result<()> {
+    let mut framed = Framed::new(stream, FrameCodec());
+    while let Some(mut bytes) = framed.try_next().await? {
+        debug!("frame bytes: {:?}", bytes);
 
-async fn connection_loop(stream: TcpStream) -> Result<()> {
-    let (reader, mut writer) = (&stream, &stream);
+        let bytes = &mut bytes;
+        let frame_storage: FrameStorage = bytes.try_into()?;
 
-    let mut length_buf = [0; U32_LENGTH];
-    let mut length_take = reader.take(U32_LENGTH as u64);
-    length_take.read(&mut length_buf).await?;
-    let length = u32::from_be_bytes(length_buf);
+        info!("frame_storage: {:?}", frame_storage);
 
-    let mut frame_buf = Vec::<u8>::with_capacity(length as usize);
-    let mut frame_take = reader.take(length as u64);
-    frame_take.read(&mut frame_buf).await?;
-
-    let buf: BytesMut = frame_buf[..].into();
-
-    unimplemented!();
+        unimplemented!();
+    }
 
     Ok(())
 }
