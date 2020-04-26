@@ -9,16 +9,20 @@ use log::*;
 use std::convert::TryInto;
 
 mod varint;
-pub use varint::{Varint, VarintFromError};
+pub use varint::{Varint, VarintParseError};
+mod varint_binary;
+pub use varint_binary::{VarintBinary, VarintBinaryParseError};
+mod varint_string;
+pub use varint_string::{VarintString, VarintStringParseError};
 
 mod frame_codec;
 pub use frame_codec::FrameCodec;
 mod frame_type;
-pub use frame_type::{FrameType, FrameTypeFromError};
+pub use frame_type::{FrameType, FrameTypeParseError};
 mod frame_flags;
-pub use frame_flags::{FrameFlags, FrameFlagsFromError};
+pub use frame_flags::{FrameFlags, FrameFlagsParseError};
 mod frame_storage;
-pub use frame_storage::{FrameStorage, FrameStorageFromError};
+pub use frame_storage::{FrameStorage, FrameStorageParseError};
 mod frame;
 pub use frame::{Frame, FrameNewError};
 mod frames;

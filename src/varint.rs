@@ -47,20 +47,20 @@ impl Varint {
 }
 
 #[derive(Error, PartialEq, Debug)]
-pub enum VarintFromError {
+pub enum VarintParseError {
     #[error("Insufficient bytes")]
     InsufficientBytes,
 }
 
 impl TryFrom<&mut Bytes> for Varint {
-    type Error = VarintFromError;
+    type Error = VarintParseError;
 
-    fn try_from(bytes: &mut Bytes) -> Result<Self, VarintFromError> {
+    fn try_from(bytes: &mut Bytes) -> Result<Self, VarintParseError> {
         let mut val_u64: u64 = 0;
         let mut n: u8 = 0;
 
         if bytes.len() < 1 {
-            return Err(VarintFromError::InsufficientBytes);
+            return Err(VarintParseError::InsufficientBytes);
         }
         let b = bytes.split_to(1);
         n += 1;
@@ -73,7 +73,7 @@ impl TryFrom<&mut Bytes> for Varint {
 
             loop {
                 if bytes.len() < 1 {
-                    return Err(VarintFromError::InsufficientBytes);
+                    return Err(VarintParseError::InsufficientBytes);
                 }
                 let b = bytes.split_to(1);
                 n += 1;

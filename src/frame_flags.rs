@@ -14,7 +14,7 @@ impl FrameFlags {
 }
 
 #[derive(Error, PartialEq, Debug)]
-pub enum FrameFlagsFromError {
+pub enum FrameFlagsParseError {
     #[error("Insufficient bytes")]
     InsufficientBytes,
 
@@ -24,11 +24,11 @@ pub enum FrameFlagsFromError {
 }
 
 impl TryFrom<&mut Bytes> for FrameFlags {
-    type Error = FrameFlagsFromError;
+    type Error = FrameFlagsParseError;
 
-    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameFlagsFromError> {
+    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameFlagsParseError> {
         if bytes.len() < 4 {
-            return Err(FrameFlagsFromError::InsufficientBytes);
+            return Err(FrameFlagsParseError::InsufficientBytes);
         }
         let b = bytes.split_to(4);
         let r#u32 = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
@@ -36,7 +36,7 @@ impl TryFrom<&mut Bytes> for FrameFlags {
 
         if flags.is_abort() {
             if flags.is_fin() == false {
-                return Err(FrameFlagsFromError::FINNotSet);
+                return Err(FrameFlagsParseError::FINNotSet);
             }
         }
 
@@ -66,7 +66,7 @@ mod tests {
         let mut bytes = Bytes::from_static(b"\0\0\0\x02");
         let bytes = &mut bytes;
         if let Err(e) = FrameFlags::try_from(bytes) {
-            assert_eq!(e, FrameFlagsFromError::FINNotSet);
+            assert_eq!(e, FrameFlagsParseError::FINNotSet);
         } else {
             assert!(false, "should err");
         }

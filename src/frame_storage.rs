@@ -1,25 +1,22 @@
-use crate::{
-    FrameFlags, FrameFlagsFromError, FrameType, FrameTypeFromError, Varint, VarintFromError,
-};
+use crate::{FrameFlags, FrameFlagsParseError, FrameType, FrameTypeParseError, VarintString};
 use bytes::Bytes;
 use std::convert::{TryFrom, TryInto};
-use std::str;
 use thiserror::Error;
 
 #[derive(Debug)]
 pub struct FrameStorage {
     pub r#type: FrameType,
     pub flags: FrameFlags,
-    pub stream_id: Option<String>,
-    pub frame_id: Option<String>,
+    pub stream_id: VarintString,
+    pub frame_id: VarintString,
 }
 
 #[derive(Error, Debug)]
-pub enum FrameStorageFromError {
+pub enum FrameStorageParseError {
     #[error("invalid type")]
-    InvalidType(#[from] FrameTypeFromError),
+    InvalidType(#[from] FrameTypeParseError),
     #[error("invalid flags")]
-    InvalidFlags(#[from] FrameFlagsFromError),
+    InvalidFlags(#[from] FrameFlagsParseError),
     #[error("invalid stream_id")]
     InvalidStreamID,
     #[error("invalid frame_id")]
@@ -27,41 +24,19 @@ pub enum FrameStorageFromError {
 }
 
 impl TryFrom<&mut Bytes> for FrameStorage {
-    type Error = FrameStorageFromError;
+    type Error = FrameStorageParseError;
 
-    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameStorageFromError> {
+    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameStorageParseError> {
         let r#type: FrameType = bytes.try_into()?;
         let flags: FrameFlags = bytes.try_into()?;
 
-        let stream_id_len: Varint = bytes
+        let stream_id: VarintString = bytes
             .try_into()
-            .map_err(|_| FrameStorageFromError::InvalidStreamID)?;
-        let stream_id_len = stream_id_len.u64_val() as usize;
-        let stream_id: Option<String> = if stream_id_len == 0 {
-            None
-        } else {
-            if bytes.len() < stream_id_len {
-                return Err(FrameStorageFromError::InvalidStreamID);
-            }
-            let b = bytes.split_to(stream_id_len);
-            let s = str::from_utf8(&b[..]).map_err(|_| FrameStorageFromError::InvalidStreamID)?;
-            Some(s.to_owned())
-        };
+            .map_err(|_| FrameStorageParseError::InvalidStreamID)?;
 
-        let frame_id_len: Varint = bytes
+        let frame_id: VarintString = bytes
             .try_into()
-            .map_err(|_| FrameStorageFromError::InvalidFrameID)?;
-        let frame_id_len = frame_id_len.u64_val() as usize;
-        let frame_id: Option<String> = if frame_id_len == 0 {
-            None
-        } else {
-            if bytes.len() < frame_id_len {
-                return Err(FrameStorageFromError::InvalidFrameID);
-            }
-            let b = bytes.split_to(frame_id_len);
-            let s = str::from_utf8(&b[..]).map_err(|_| FrameStorageFromError::InvalidFrameID)?;
-            Some(s.to_owned())
-        };
+            .map_err(|_| FrameStorageParseError::InvalidFrameID)?;
 
         let frame = Self {
             r#type,
@@ -89,8 +64,8 @@ mod tests {
         assert_eq!(frame_storage.r#type, FrameType::HAPROXY_HELLO);
         assert_eq!(frame_storage.flags.is_fin(), true);
         assert_eq!(frame_storage.flags.is_abort(), false);
-        assert_eq!(frame_storage.stream_id, None);
-        assert_eq!(frame_storage.frame_id, None);
+        assert_eq!(frame_storage.stream_id.val(), "");
+        assert_eq!(frame_storage.frame_id.val(), "");
 
         Ok(())
     }

@@ -17,7 +17,7 @@ pub enum FrameType {
 }
 
 #[derive(Error, PartialEq, Debug)]
-pub enum FrameTypeFromError {
+pub enum FrameTypeParseError {
     #[error("Insufficient bytes")]
     InsufficientBytes,
 
@@ -26,15 +26,15 @@ pub enum FrameTypeFromError {
 }
 
 impl TryFrom<&mut Bytes> for FrameType {
-    type Error = FrameTypeFromError;
+    type Error = FrameTypeParseError;
 
-    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameTypeFromError> {
+    fn try_from(bytes: &mut Bytes) -> Result<Self, FrameTypeParseError> {
         if bytes.len() < 1 {
-            return Err(FrameTypeFromError::InsufficientBytes);
+            return Err(FrameTypeParseError::InsufficientBytes);
         }
         let b = bytes.split_to(1);
         let r#u8 = u8::from_be_bytes([b[0]]);
-        let r#type = Self::try_from(r#u8).map_err(|_| FrameTypeFromError::Invalid)?;
+        let r#type = Self::try_from(r#u8).map_err(|_| FrameTypeParseError::Invalid)?;
         Ok(r#type)
     }
 }
@@ -64,7 +64,7 @@ mod tests {
         let mut bytes = Bytes::from_static(b"\xff");
         let bytes = &mut bytes;
         if let Err(e) = FrameType::try_from(bytes) {
-            assert_eq!(e, FrameTypeFromError::Invalid);
+            assert_eq!(e, FrameTypeParseError::Invalid);
         } else {
             assert!(false, "should err");
         }
