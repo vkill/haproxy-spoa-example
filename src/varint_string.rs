@@ -4,10 +4,14 @@ use std::convert::{TryFrom, TryInto};
 use std::str;
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct VarintString(String);
 
 impl VarintString {
+    pub fn new(val: &str) -> Self {
+        Self(val.to_owned())
+    }
+
     pub fn val(&self) -> &str {
         self.0.as_ref()
     }

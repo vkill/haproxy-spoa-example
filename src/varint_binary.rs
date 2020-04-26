@@ -3,10 +3,14 @@ use bytes::Bytes;
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct VarintBinary(Vec<u8>);
 
 impl VarintBinary {
+    pub fn new(val: &Vec<u8>) -> Self {
+        Self(val.to_owned())
+    }
+
     pub fn val(&self) -> &[u8] {
         self.0.as_ref()
     }

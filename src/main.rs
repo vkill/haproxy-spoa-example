@@ -14,6 +14,8 @@ mod varint_binary;
 pub use varint_binary::{VarintBinary, VarintBinaryParseError};
 mod varint_string;
 pub use varint_string::{VarintString, VarintStringParseError};
+mod typed_data;
+pub use typed_data::{TypedData, TypedDataParseError};
 
 mod frame_codec;
 pub use frame_codec::FrameCodec;
