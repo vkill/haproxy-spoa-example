@@ -6,10 +6,10 @@ use thiserror::Error;
 pub struct FrameFlags(u32);
 impl FrameFlags {
     pub fn is_fin(&self) -> bool {
-        self.0 & 0x80000000u32 != 0
+        self.0.reverse_bits() & 0x80000000u32 != 0
     }
     pub fn is_abort(&self) -> bool {
-        self.0 & 0x40000000u32 != 0
+        self.0.reverse_bits() & 0x40000000u32 != 0
     }
 }
 
@@ -32,7 +32,7 @@ impl TryFrom<&mut Bytes> for FrameFlags {
         }
         let b = bytes.split_to(4);
         let r#u32 = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
-        let flags = FrameFlags(r#u32.reverse_bits());
+        let flags = FrameFlags(r#u32);
 
         if flags.is_abort() {
             if flags.is_fin() == false {
