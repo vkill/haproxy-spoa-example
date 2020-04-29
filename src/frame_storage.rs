@@ -1,4 +1,7 @@
-use crate::{FrameFlags, FrameFlagsParseError, FrameType, FrameTypeParseError, VarintString};
+use crate::{
+    FrameFlags, FrameFlagsParseError, FramePayload, FramePayloadParseError, FramePayloadType,
+    FrameType, FrameTypeParseError, VarintString,
+};
 use bytes::Bytes;
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
@@ -9,6 +12,7 @@ pub struct FrameStorage {
     pub flags: FrameFlags,
     pub stream_id: VarintString,
     pub frame_id: VarintString,
+    pub payload: FramePayload,
 }
 
 #[derive(Error, Debug)]
@@ -21,6 +25,8 @@ pub enum FrameStorageParseError {
     InvalidStreamID,
     #[error("invalid frame_id")]
     InvalidFrameID,
+    #[error("invalid payload")]
+    InvalidPayload(#[from] FramePayloadParseError),
 }
 
 impl TryFrom<&mut Bytes> for FrameStorage {
@@ -38,11 +44,17 @@ impl TryFrom<&mut Bytes> for FrameStorage {
             .try_into()
             .map_err(|_| FrameStorageParseError::InvalidFrameID)?;
 
+        let payload: FramePayload = match r#type {
+            FrameType::HAPROXY_HELLO => (bytes, FramePayloadType::KV_LIST).try_into()?,
+            _ => unimplemented!(),
+        };
+
         let frame = Self {
             r#type,
             flags,
             stream_id,
             frame_id,
+            payload,
         };
 
         Ok(frame)

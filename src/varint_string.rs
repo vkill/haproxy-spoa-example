@@ -4,7 +4,7 @@ use std::convert::{TryFrom, TryInto};
 use std::str;
 use thiserror::Error;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub struct VarintString(String);
 
 impl VarintString {

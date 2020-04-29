@@ -21,6 +21,8 @@ mod frame_type;
 pub use frame_type::{FrameType, FrameTypeParseError};
 mod frame_flags;
 pub use frame_flags::{FrameFlags, FrameFlagsParseError};
+mod frame_payload;
+pub use frame_payload::{FramePayload, FramePayloadParseError, FramePayloadType};
 mod frame_storage;
 pub use frame_storage::{FrameStorage, FrameStorageParseError};
 mod frame;
