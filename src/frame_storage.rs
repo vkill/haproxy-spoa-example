@@ -72,6 +72,7 @@ mod tests {
         let bytes = &mut bytes;
 
         let frame_storage: FrameStorage = bytes.try_into()?;
+        println!("{:?}", frame_storage);
 
         assert_eq!(frame_storage.r#type, FrameType::HAPROXY_HELLO);
         assert_eq!(frame_storage.flags.is_fin(), true);

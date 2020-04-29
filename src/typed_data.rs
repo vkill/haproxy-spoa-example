@@ -15,11 +15,83 @@ pub enum TypedData {
     INT32(i32),
     UINT32(u32),
     INT64(i64),
-    UNIT64(u64),
+    UINT64(u64),
     IPV4(Ipv4Addr),
     IPV6(Ipv6Addr),
     STRING(VarintString),
     BINARY(VarintBinary),
+}
+
+impl TypedData {
+    pub fn get_null(&self) -> Option<()> {
+        match self {
+            Self::NULL => Some(()),
+            _ => None,
+        }
+    }
+
+    pub fn get_bool(&self) -> Option<&bool> {
+        match self {
+            Self::BOOL(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_i32(&self) -> Option<&i32> {
+        match self {
+            Self::INT32(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_u32(&self) -> Option<&u32> {
+        match self {
+            Self::UINT32(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_i64(&self) -> Option<&i64> {
+        match self {
+            Self::INT64(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_u64(&self) -> Option<&u64> {
+        match self {
+            Self::UINT64(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_ipv4(&self) -> Option<&Ipv4Addr> {
+        match self {
+            Self::IPV4(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_ipv6(&self) -> Option<&Ipv6Addr> {
+        match self {
+            Self::IPV6(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_string(&self) -> Option<&VarintString> {
+        match self {
+            Self::STRING(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_binary(&self) -> Option<&VarintBinary> {
+        match self {
+            Self::BINARY(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 #[derive(IntoPrimitive, TryFromPrimitive, PartialEq, Debug)]
@@ -30,7 +102,7 @@ enum TypedDataType {
     INT32 = 2,
     UINT32 = 3,
     INT64 = 4,
-    UNIT64 = 5,
+    UINT64 = 5,
     IPV4 = 6,
     IPV6 = 7,
     STRING = 8,
@@ -80,16 +152,14 @@ impl TryFrom<&mut Bytes> for TypedData {
             return Err(TypedDataParseError::InsufficientBytes);
         }
         let b = bytes.split_to(1);
-        let (r#type, ok) = b[0].overflowing_shr(4);
-        if ok {
-            return Err(TypedDataParseError::InvalidType);
-        }
+        let r#type = b[0].wrapping_shl(4).wrapping_shr(4);
+
         let r#type =
             TypedDataType::try_from(r#type).map_err(|_| TypedDataParseError::InvalidType)?;
 
         let v = match r#type {
             TypedDataType::NULL => Self::NULL,
-            TypedDataType::BOOL => Self::BOOL(b[0] & 0b_00001000_u8 != 0),
+            TypedDataType::BOOL => Self::BOOL(b[0] & 0b_1000_0000_u8 != 0),
             TypedDataType::INT32 => {
                 let varint = Varint::try_from(bytes).map_err(|e| TypedDataParseError::from(e))?;
                 let val = varint.i32_val().ok_or(TypedDataParseError::Invalid)?;
@@ -104,9 +174,9 @@ impl TryFrom<&mut Bytes> for TypedData {
                 let varint = Varint::try_from(bytes).map_err(|e| TypedDataParseError::from(e))?;
                 Self::INT64(varint.i64_val())
             }
-            TypedDataType::UNIT64 => {
+            TypedDataType::UINT64 => {
                 let varint = Varint::try_from(bytes).map_err(|e| TypedDataParseError::from(e))?;
-                Self::UNIT64(varint.u64_val())
+                Self::UINT64(varint.u64_val())
             }
             TypedDataType::IPV4 => {
                 if bytes.len() < 4 {
@@ -155,43 +225,43 @@ mod tests {
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::NULL);
 
-        let mut bytes = Bytes::from_static(&[0b_0001_0000_u8]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0001_u8]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::BOOL(false));
 
-        let mut bytes = Bytes::from_static(&[0b_0001_1000_u8]);
+        let mut bytes = Bytes::from_static(&[0b_1000_0001_u8]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::BOOL(true));
 
-        let mut bytes = Bytes::from_static(&[0b_0010_0000_u8, 0x01]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0010_u8, 0x01]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::INT32(1));
 
-        let mut bytes = Bytes::from_static(&[0b_0011_0000_u8, 0x01]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0011_u8, 0x01]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::UINT32(1));
 
-        let mut bytes = Bytes::from_static(&[0b_0100_0000_u8, 0x01]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0100_u8, 0x01]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::INT64(1));
 
-        let mut bytes = Bytes::from_static(&[0b_0101_0000_u8, 0x01]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0101_u8, 0x01]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
-        assert_eq!(typed_data, TypedData::UNIT64(1));
+        assert_eq!(typed_data, TypedData::UINT64(1));
 
-        let mut bytes = Bytes::from_static(&[0b_0110_0000_u8, 0x01, 0x01, 0x01, 0x01]);
+        let mut bytes = Bytes::from_static(&[0b_0000_0110_u8, 0x01, 0x01, 0x01, 0x01]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::IPV4(Ipv4Addr::new(1, 1, 1, 1)));
 
         let mut bytes = Bytes::from_static(&[
-            0b_0111_0000_u8,
+            0b_0000_0111_u8,
             0x00,
             0x01,
             0x00,
@@ -216,12 +286,12 @@ mod tests {
             TypedData::IPV6(Ipv6Addr::new(1, 1, 1, 1, 1, 1, 1, 1))
         );
 
-        let mut bytes = Bytes::from_static(&[0b_1000_0000_u8, 0x01, 'a' as u8]);
+        let mut bytes = Bytes::from_static(&[0b_0000_1000_u8, 0x01, 'a' as u8]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::STRING(VarintString::new("a")));
 
-        let mut bytes = Bytes::from_static(&[0b_1001_0000_u8, 0x01, 'a' as u8]);
+        let mut bytes = Bytes::from_static(&[0b_0000_1001_u8, 0x01, 'a' as u8]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(
