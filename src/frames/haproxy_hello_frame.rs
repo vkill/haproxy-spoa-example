@@ -1,19 +1,20 @@
-use crate::{Frame, FrameNewError, FrameStorage};
-use semver::Version;
+use crate::{FrameStorage, SupportVersion};
+use std::convert::TryFrom;
 use std::str::FromStr;
 use strum_macros::EnumString;
 use thiserror::Error;
 
 #[derive(Debug)]
 pub struct HAProxyHelloFrame {
-    pub supported_versions: Vec<Version>,
+    pub(crate) supported_versions: Vec<SupportVersion>,
     pub max_frame_size: u32,
     pub capabilities: Vec<HAProxyHelloFrameCapability>,
     pub healthcheck: Option<bool>,
     pub engine_id: String,
 }
 
-#[derive(EnumString, Debug)]
+#[derive(EnumString, Debug, Display)]
+#[allow(non_camel_case_types)]
 pub enum HAProxyHelloFrameCapability {
     #[strum(serialize = "pipelining")]
     pipelining,
@@ -23,7 +24,7 @@ pub enum HAProxyHelloFrameCapability {
 
 #[derive(Error, Debug)]
 #[allow(non_camel_case_types)]
-pub enum HAProxyHelloFrameNewError {
+pub enum HAProxyHelloFrameParseError {
     #[error("STREAM-ID and FRAME-ID are must be set 0")]
     Invalid_STREAM_ID,
     #[error("STREAM-ID and FRAME-ID are must be set 0")]
@@ -34,48 +35,54 @@ pub enum HAProxyHelloFrameNewError {
     FieldValueInvalid(String),
 }
 
-impl Frame for HAProxyHelloFrame {
-    fn new(storage: FrameStorage) -> Result<Self, FrameNewError> {
+impl TryFrom<FrameStorage> for HAProxyHelloFrame {
+    type Error = HAProxyHelloFrameParseError;
+    fn try_from(storage: FrameStorage) -> Result<Self, HAProxyHelloFrameParseError> {
         if !storage.stream_id.val().is_empty() {
-            return Err(HAProxyHelloFrameNewError::Invalid_STREAM_ID.into());
+            return Err(HAProxyHelloFrameParseError::Invalid_STREAM_ID);
         }
         if !storage.frame_id.val().is_empty() {
-            return Err(HAProxyHelloFrameNewError::Invalid_FRAME_ID.into());
+            return Err(HAProxyHelloFrameParseError::Invalid_FRAME_ID);
         }
 
         let supported_versions_name = "supported-versions";
-        let supported_versions_value: Vec<Option<Version>> = storage
+        let supported_versions_value: Vec<Option<SupportVersion>> = storage
             .payload
             .get_kv_value(supported_versions_name)
-            .ok_or(HAProxyHelloFrameNewError::FieldNotFound(
+            .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 supported_versions_name.to_owned(),
             ))?
             .get_string()
-            .ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 supported_versions_name.to_owned(),
             ))?
             .val()
             .split(",")
-            .map(|x| Version::parse(format!("{}.0", x.trim()).as_ref()).ok())
+            .map(|x| SupportVersion::parse(x))
             .collect();
 
-        let mut supported_versions: Vec<Version> = vec![];
+        let mut supported_versions: Vec<SupportVersion> = vec![];
         for v in supported_versions_value {
-            let v = v.ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            let v = v.ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 supported_versions_name.to_owned(),
             ))?;
             supported_versions.push(v);
+        }
+        if supported_versions.is_empty() {
+            return Err(HAProxyHelloFrameParseError::FieldValueInvalid(
+                supported_versions_name.to_owned(),
+            ));
         }
 
         let max_frame_size_name = "max-frame-size";
         let max_frame_size = storage
             .payload
             .get_kv_value(max_frame_size_name)
-            .ok_or(HAProxyHelloFrameNewError::FieldNotFound(
+            .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 max_frame_size_name.to_owned(),
             ))?
             .get_u32()
-            .ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 supported_versions_name.to_owned(),
             ))?;
 
@@ -83,11 +90,11 @@ impl Frame for HAProxyHelloFrame {
         let capabilities_value: Vec<Option<HAProxyHelloFrameCapability>> = storage
             .payload
             .get_kv_value(capabilities_name)
-            .ok_or(HAProxyHelloFrameNewError::FieldNotFound(
+            .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 capabilities_name.to_owned(),
             ))?
             .get_string()
-            .ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 capabilities_name.to_owned(),
             ))?
             .val()
@@ -97,7 +104,7 @@ impl Frame for HAProxyHelloFrame {
 
         let mut capabilities: Vec<HAProxyHelloFrameCapability> = vec![];
         for v in capabilities_value {
-            let v = v.ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            let v = v.ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 capabilities_name.to_owned(),
             ))?;
             capabilities.push(v);
@@ -107,7 +114,7 @@ impl Frame for HAProxyHelloFrame {
         let healthcheck_name = "healthcheck";
         if let Some(healthcheck_value) = storage.payload.get_kv_value(healthcheck_name) {
             let healthcheck_value = healthcheck_value.get_bool().ok_or(
-                HAProxyHelloFrameNewError::FieldValueInvalid(healthcheck_name.to_owned()),
+                HAProxyHelloFrameParseError::FieldValueInvalid(healthcheck_name.to_owned()),
             )?;
             healthcheck = Some(healthcheck_value);
         }
@@ -116,11 +123,11 @@ impl Frame for HAProxyHelloFrame {
         let engine_id = storage
             .payload
             .get_kv_value(engine_id_name)
-            .ok_or(HAProxyHelloFrameNewError::FieldNotFound(
+            .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 engine_id_name.to_owned(),
             ))?
             .get_string()
-            .ok_or(HAProxyHelloFrameNewError::FieldValueInvalid(
+            .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 engine_id_name.to_owned(),
             ))?
             .val();
@@ -159,7 +166,7 @@ mod tests {
         assert_eq!(frame_storage.stream_id.val(), "");
         assert_eq!(frame_storage.frame_id.val(), "");
 
-        let frame = HAProxyHelloFrame::new(frame_storage)?;
+        let frame = HAProxyHelloFrame::try_from(frame_storage)?;
         println!("{:?}", frame);
 
         Ok(())

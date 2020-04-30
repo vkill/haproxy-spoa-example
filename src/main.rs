@@ -4,7 +4,10 @@ use std::net::{TcpListener, TcpStream};
 
 use futures_codec::Framed;
 use log::*;
-use std::convert::TryInto;
+
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
 
 mod varint;
 pub use varint::{Varint, VarintParseError};
@@ -14,6 +17,8 @@ mod varint_string;
 pub use varint_string::{VarintString, VarintStringParseError};
 mod typed_data;
 pub use typed_data::{TypedData, TypedDataParseError};
+mod support_version;
+pub use support_version::SupportVersion;
 
 mod frame_codec;
 pub use frame_codec::FrameCodec;
@@ -26,7 +31,7 @@ pub use frame_payload::{FramePayload, FramePayloadParseError, FramePayloadType};
 mod frame_storage;
 pub use frame_storage::{FrameStorage, FrameStorageParseError};
 mod frame;
-pub use frame::{Frame, FrameNewError};
+pub use frame::Frame;
 mod frames;
 pub use frames::*;
 
@@ -55,15 +60,16 @@ async fn accept_loop(addr: &str) -> anyhow::Result<()> {
 
 async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
     let mut framed = Framed::new(stream, FrameCodec());
+
+    let frame = Frame::new();
+
     while let Some(mut bytes) = framed.try_next().await? {
-        debug!("frame bytes: {:?}", bytes);
-
+        debug!("read bytes: {:?}", bytes);
         let bytes = &mut bytes;
-        let frame_storage: FrameStorage = bytes.try_into()?;
 
-        info!("frame_storage: {:?}", frame_storage);
-
-        unimplemented!();
+        if let Some(bytes) = frame.handle(bytes)? {
+            info!("write bytes: {:?}", bytes);
+        }
     }
 
     Ok(())

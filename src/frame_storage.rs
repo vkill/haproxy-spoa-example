@@ -49,7 +49,7 @@ impl TryFrom<&mut Bytes> for FrameStorage {
             _ => unimplemented!(),
         };
 
-        let frame = Self {
+        let frame_storage = Self {
             r#type,
             flags,
             stream_id,
@@ -57,6 +57,12 @@ impl TryFrom<&mut Bytes> for FrameStorage {
             payload,
         };
 
-        Ok(frame)
+        Ok(frame_storage)
+    }
+}
+
+impl From<FrameStorage> for Bytes {
+    fn from(storage: FrameStorage) -> Self {
+        unimplemented!()
     }
 }

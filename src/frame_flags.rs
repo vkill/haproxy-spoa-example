@@ -12,6 +12,13 @@ impl FrameFlags {
         self.0.reverse_bits() & 0x40000000u32 != 0
     }
 }
+impl FrameFlags {
+    pub fn new(is_fin: bool, is_abort: bool) -> Self {
+        let val = 0_u32;
+        todo!();
+        Self(val)
+    }
+}
 
 #[derive(Error, PartialEq, Debug)]
 pub enum FrameFlagsParseError {
