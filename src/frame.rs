@@ -1,4 +1,7 @@
-use crate::{AgentHelloFrame, FrameStorage, FrameStorageParseError, FrameType, HAProxyHelloFrame};
+use crate::{
+    AgentHelloFrame, AgentHelloFramePayload, FrameStorage, FrameStorageParseError, FrameType,
+    HAProxyHelloFrame,
+};
 use bytes::Bytes;
 use std::convert::TryFrom;
 use thiserror::Error;
@@ -24,8 +27,11 @@ impl Frame {
         let frame_storage_out = match frame_storage.r#type {
             FrameType::HAPROXY_HELLO => {
                 if let Ok(haproxy_hello_frame) = HAProxyHelloFrame::try_from(frame_storage) {
-                    let agent_hello_frame =
-                        AgentHelloFrame::from_haproxy_hello_frame(haproxy_hello_frame);
+                    let agent_hello_frame = AgentHelloFrame::new(
+                        AgentHelloFramePayload::from_haproxy_hello_frame_payload(
+                            haproxy_hello_frame.payload,
+                        ),
+                    );
                     Some(FrameStorage::from(agent_hello_frame))
                 } else {
                     unimplemented!()

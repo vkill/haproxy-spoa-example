@@ -9,6 +9,9 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
+#[macro_use]
+mod macros;
+
 mod varint;
 pub use varint::{Varint, VarintParseError};
 mod varint_binary;

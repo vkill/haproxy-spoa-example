@@ -6,11 +6,18 @@ use thiserror::Error;
 
 #[derive(Debug)]
 pub struct HAProxyHelloFrame {
-    pub(crate) supported_versions: Vec<SupportVersion>,
+    pub payload: HAProxyHelloFramePayload,
+}
+
+make_frame_kv_list_payload! {
+#[derive(Debug)]
+pub struct HAProxyHelloFramePayload {
+    pub supported_versions: Vec<SupportVersion>,
     pub max_frame_size: u32,
     pub capabilities: Vec<HAProxyHelloFrameCapability>,
     pub healthcheck: Option<bool>,
     pub engine_id: String,
+}
 }
 
 #[derive(EnumString, Debug, Display)]
@@ -45,7 +52,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             return Err(HAProxyHelloFrameParseError::Invalid_FRAME_ID);
         }
 
-        let supported_versions_name = "supported-versions";
+        let supported_versions_name = &HAProxyHelloFramePayload::supported_versions_name();
         let supported_versions_value: Vec<Option<SupportVersion>> = storage
             .payload
             .get_kv_value(supported_versions_name)
@@ -74,7 +81,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             ));
         }
 
-        let max_frame_size_name = "max-frame-size";
+        let max_frame_size_name = &HAProxyHelloFramePayload::max_frame_size_name();
         let max_frame_size = storage
             .payload
             .get_kv_value(max_frame_size_name)
@@ -86,7 +93,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
                 supported_versions_name.to_owned(),
             ))?;
 
-        let capabilities_name = "capabilities";
+        let capabilities_name = &HAProxyHelloFramePayload::capabilities_name();
         let capabilities_value: Vec<Option<HAProxyHelloFrameCapability>> = storage
             .payload
             .get_kv_value(capabilities_name)
@@ -111,7 +118,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         }
 
         let mut healthcheck: Option<&bool> = None;
-        let healthcheck_name = "healthcheck";
+        let healthcheck_name = &HAProxyHelloFramePayload::healthcheck_name();
         if let Some(healthcheck_value) = storage.payload.get_kv_value(healthcheck_name) {
             let healthcheck_value = healthcheck_value.get_bool().ok_or(
                 HAProxyHelloFrameParseError::FieldValueInvalid(healthcheck_name.to_owned()),
@@ -119,7 +126,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             healthcheck = Some(healthcheck_value);
         }
 
-        let engine_id_name = "engine-id";
+        let engine_id_name = &HAProxyHelloFramePayload::engine_id_name();
         let engine_id = storage
             .payload
             .get_kv_value(engine_id_name)
@@ -131,14 +138,15 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
                 engine_id_name.to_owned(),
             ))?
             .val();
-
-        let frame = Self {
+        let payload = HAProxyHelloFramePayload {
             supported_versions: supported_versions,
             max_frame_size: max_frame_size.to_owned(),
             capabilities: capabilities,
             healthcheck: healthcheck.map(|x| x.to_owned()),
             engine_id: engine_id.to_owned(),
         };
+
+        let frame = Self { payload };
 
         Ok(frame)
     }

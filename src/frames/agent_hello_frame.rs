@@ -1,4 +1,4 @@
-use super::{HAProxyHelloFrame, HAProxyHelloFrameCapability};
+use super::{HAProxyHelloFrameCapability, HAProxyHelloFramePayload};
 use crate::{
     FrameFlags, FramePayload, FrameStorage, FrameType, SupportVersion, TypedData, VarintString,
 };
@@ -7,12 +7,25 @@ use std::string::ToString;
 
 #[derive(Debug)]
 pub struct AgentHelloFrame {
+    pub payload: AgentHelloFramePayload,
+}
+
+impl AgentHelloFrame {
+    pub fn new(payload: AgentHelloFramePayload) -> Self {
+        Self { payload }
+    }
+}
+
+make_frame_kv_list_payload! {
+#[derive(Debug)]
+pub struct AgentHelloFramePayload {
     pub version: SupportVersion,
     pub max_frame_size: u32,
     pub capabilities: Vec<HAProxyHelloFrameCapability>,
 }
+}
 
-impl AgentHelloFrame {
+impl AgentHelloFramePayload {
     pub fn new(
         version: SupportVersion,
         max_frame_size: u32,
@@ -25,15 +38,17 @@ impl AgentHelloFrame {
         }
     }
 
-    pub fn from_haproxy_hello_frame(haproxy_hello_frame: HAProxyHelloFrame) -> Self {
+    pub fn from_haproxy_hello_frame_payload(
+        haproxy_hello_frame_payload: HAProxyHelloFramePayload,
+    ) -> Self {
         Self {
-            version: haproxy_hello_frame
+            version: haproxy_hello_frame_payload
                 .supported_versions
                 .first()
                 .unwrap()
                 .to_owned(),
-            max_frame_size: haproxy_hello_frame.max_frame_size,
-            capabilities: haproxy_hello_frame.capabilities,
+            max_frame_size: haproxy_hello_frame_payload.max_frame_size,
+            capabilities: haproxy_hello_frame_payload.capabilities,
         }
     }
 }
@@ -48,17 +63,20 @@ impl From<AgentHelloFrame> for FrameStorage {
 
         let mut h = HashMap::<String, TypedData>::new();
         h.insert(
-            "version".to_owned(),
-            TypedData::STRING(VarintString::new(frame.version.to_string().as_str())),
+            AgentHelloFramePayload::version_name(),
+            TypedData::STRING(VarintString::new(
+                frame.payload.version.to_string().as_str(),
+            )),
         );
         h.insert(
-            "max-frame-size".to_owned(),
-            TypedData::UINT32(frame.max_frame_size),
+            AgentHelloFramePayload::max_frame_size_name(),
+            TypedData::UINT32(frame.payload.max_frame_size),
         );
         h.insert(
-            "capabilities".to_owned(),
+            AgentHelloFramePayload::capabilities_name(),
             TypedData::STRING(VarintString::new(
                 frame
+                    .payload
                     .capabilities
                     .iter()
                     .map(|x| x.to_string())
