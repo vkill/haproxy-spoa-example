@@ -216,34 +216,42 @@ impl TryFrom<&mut Bytes> for TypedData {
 impl TypedData {
     pub fn write_to(&self, buf: &mut BytesMut) {
         match self {
-            TypedData::NULL => (),
+            TypedData::NULL => buf.put_u8(0),
             TypedData::BOOL(val) => buf.put_u8(if true == *val {
                 0b_1000_0001_u8
             } else {
                 0b_0000_0001_u8
             }),
             TypedData::INT32(val) => {
+                buf.put_u8(0b_0000_0010_u8);
                 buf.extend_from_slice(BytesMut::from(Varint::from(*val as u32)).as_ref());
             }
             TypedData::UINT32(val) => {
+                buf.put_u8(0b_0000_0011_u8);
                 buf.extend_from_slice(BytesMut::from(Varint::from(*val)).as_ref());
             }
             TypedData::INT64(val) => {
+                buf.put_u8(0b_0000_0100_u8);
                 buf.extend_from_slice(BytesMut::from(Varint::from(*val as u64)).as_ref());
             }
             TypedData::UINT64(val) => {
+                buf.put_u8(0b_0000_0101_u8);
                 buf.extend_from_slice(BytesMut::from(Varint::from(*val)).as_ref());
             }
             TypedData::IPV4(val) => {
+                buf.put_u8(0b_0000_0110_u8);
                 buf.extend_from_slice(val.octets().as_ref());
             }
             TypedData::IPV6(val) => {
+                buf.put_u8(0b_0000_0111_u8);
                 buf.extend_from_slice(val.octets().as_ref());
             }
             TypedData::STRING(val) => {
+                buf.put_u8(0b_0000_1000_u8);
                 val.write_to(buf);
             }
             TypedData::BINARY(val) => {
+                buf.put_u8(0b_0000_1001_u8);
                 val.write_to(buf);
             }
         }
