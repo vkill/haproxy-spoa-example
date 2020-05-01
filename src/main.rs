@@ -1,4 +1,4 @@
-use futures::TryStreamExt;
+use futures::{SinkExt, TryStreamExt};
 use smol::{Async, Task};
 use std::net::{TcpListener, TcpStream};
 
@@ -72,6 +72,7 @@ async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
 
         if let Some(bytes) = frame.handle(bytes)? {
             info!("write bytes: {:?}", bytes);
+            framed.send(bytes.freeze()).await?;
         }
     }
 

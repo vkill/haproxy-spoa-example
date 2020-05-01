@@ -1,9 +1,9 @@
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::convert::TryFrom;
+use std::convert::{Into, TryFrom};
 use thiserror::Error;
 
-#[derive(IntoPrimitive, TryFromPrimitive, PartialEq, Debug)]
+#[derive(IntoPrimitive, TryFromPrimitive, PartialEq, Clone, Debug)]
 #[repr(u8)]
 #[allow(non_camel_case_types)]
 pub enum FrameType {
@@ -36,6 +36,13 @@ impl TryFrom<&mut Bytes> for FrameType {
         let r#u8 = u8::from_be_bytes([b[0]]);
         let r#type = Self::try_from(r#u8).map_err(|_| FrameTypeParseError::Invalid)?;
         Ok(r#type)
+    }
+}
+
+impl FrameType {
+    pub fn write_to(self, buf: &mut BytesMut) {
+        buf.put_u8(self.into());
+        ()
     }
 }
 

@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::TryFrom;
 use thiserror::Error;
 
@@ -94,6 +94,33 @@ impl TryFrom<&mut Bytes> for Varint {
         } else {
             Ok(val_u64.into())
         }
+    }
+}
+
+impl From<Varint> for BytesMut {
+    fn from(varint: Varint) -> Self {
+        let mut buf = BytesMut::new();
+
+        let val_u64 = varint.u64_val();
+
+        if val_u64 < 240 {
+            buf.put_u8(val_u64 as u8)
+        } else {
+            let mut val_u64 = val_u64;
+
+            buf.put_u8((val_u64 % 256 | 240) as u8);
+
+            val_u64 = (val_u64 - 240) >> 4;
+            while val_u64 >= 128 {
+                buf.put_u8((val_u64 % 256 | 128) as u8);
+
+                val_u64 = (val_u64 - 128) >> 7;
+            }
+
+            buf.put_u8(val_u64 as u8);
+        }
+
+        buf
     }
 }
 

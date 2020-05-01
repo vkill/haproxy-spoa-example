@@ -2,7 +2,7 @@ use crate::{
     Varint, VarintBinary, VarintBinaryParseError, VarintParseError, VarintString,
     VarintStringParseError,
 };
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -210,6 +210,44 @@ impl TryFrom<&mut Bytes> for TypedData {
         };
 
         Ok(v)
+    }
+}
+
+impl TypedData {
+    pub fn write_to(&self, buf: &mut BytesMut) {
+        match self {
+            TypedData::NULL => (),
+            TypedData::BOOL(val) => buf.put_u8(if true == *val {
+                0b_1000_0001_u8
+            } else {
+                0b_0000_0001_u8
+            }),
+            TypedData::INT32(val) => {
+                buf.extend_from_slice(BytesMut::from(Varint::from(*val as u32)).as_ref());
+            }
+            TypedData::UINT32(val) => {
+                buf.extend_from_slice(BytesMut::from(Varint::from(*val)).as_ref());
+            }
+            TypedData::INT64(val) => {
+                buf.extend_from_slice(BytesMut::from(Varint::from(*val as u64)).as_ref());
+            }
+            TypedData::UINT64(val) => {
+                buf.extend_from_slice(BytesMut::from(Varint::from(*val)).as_ref());
+            }
+            TypedData::IPV4(val) => {
+                buf.extend_from_slice(val.octets().as_ref());
+            }
+            TypedData::IPV6(val) => {
+                buf.extend_from_slice(val.octets().as_ref());
+            }
+            TypedData::STRING(val) => {
+                val.write_to(&mut buf.to_owned());
+            }
+            TypedData::BINARY(val) => {
+                val.write_to(&mut buf.to_owned());
+            }
+        }
+        ()
     }
 }
 

@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::TryFrom;
 use thiserror::Error;
 
@@ -15,7 +15,9 @@ impl FrameFlags {
 impl FrameFlags {
     pub fn new(is_fin: bool, is_abort: bool) -> Self {
         let val = 0_u32;
-        todo!();
+
+        // TODO
+
         Self(val)
     }
 }
@@ -48,6 +50,13 @@ impl TryFrom<&mut Bytes> for FrameFlags {
         }
 
         Ok(flags)
+    }
+}
+
+impl FrameFlags {
+    pub fn write_to(&self, buf: &mut BytesMut) {
+        buf.put_u32(self.0);
+        ()
     }
 }
 

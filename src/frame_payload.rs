@@ -1,5 +1,5 @@
 use crate::{TypedData, VarintString};
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
@@ -61,5 +61,21 @@ impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
                 Ok(Self::KV_LIST(maps))
             }
         }
+    }
+}
+
+impl FramePayload {
+    pub fn write_to(&self, buf: &mut BytesMut) {
+        match self {
+            Self::KV_LIST(h) => {
+                for (k, v) in h.iter() {
+                    VarintString::new(k).write_to(&mut buf.to_owned());
+                    v.write_to(&mut buf.to_owned());
+                }
+            }
+            _ => unimplemented!(),
+        }
+
+        ()
     }
 }

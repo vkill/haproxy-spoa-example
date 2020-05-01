@@ -1,5 +1,5 @@
 use crate::Varint;
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::{TryFrom, TryInto};
 use std::str;
 use thiserror::Error;
@@ -46,5 +46,17 @@ impl TryFrom<&mut Bytes> for VarintString {
         };
 
         Ok(Self(s))
+    }
+}
+
+impl VarintString {
+    pub fn write_to(&self, buf: &mut BytesMut) {
+        let len = self.val().len() as u64;
+
+        buf.extend_from_slice(BytesMut::from(Varint::from(len)).as_ref());
+
+        buf.put(self.val().as_bytes());
+
+        ()
     }
 }

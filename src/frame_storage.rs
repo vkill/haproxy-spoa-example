@@ -2,7 +2,7 @@ use crate::{
     FrameFlags, FrameFlagsParseError, FramePayload, FramePayloadParseError, FramePayloadType,
     FrameType, FrameTypeParseError, VarintString,
 };
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
 
@@ -61,8 +61,16 @@ impl TryFrom<&mut Bytes> for FrameStorage {
     }
 }
 
-impl From<FrameStorage> for Bytes {
+impl From<FrameStorage> for BytesMut {
     fn from(storage: FrameStorage) -> Self {
-        unimplemented!()
+        let mut buf = BytesMut::new();
+
+        storage.r#type.write_to(&mut buf);
+        storage.flags.write_to(&mut buf);
+        storage.stream_id.write_to(&mut buf);
+        storage.frame_id.write_to(&mut buf);
+        storage.payload.write_to(&mut buf);
+
+        buf
     }
 }
