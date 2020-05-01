@@ -68,9 +68,9 @@ impl FramePayload {
     pub fn write_to(&self, buf: &mut BytesMut) {
         match self {
             Self::KV_LIST(h) => {
-                for (k, v) in h.iter() {
-                    VarintString::new(k).write_to(&mut buf.to_owned());
-                    v.write_to(&mut buf.to_owned());
+                for (k, v) in h {
+                    VarintString::new(k).write_to(buf);
+                    v.write_to(buf);
                 }
             }
             _ => unimplemented!(),

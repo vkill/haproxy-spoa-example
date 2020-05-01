@@ -14,8 +14,9 @@ impl FrameFlags {
 }
 impl FrameFlags {
     pub fn new(is_fin: bool, is_abort: bool) -> Self {
-        let val = 0_u32;
+        let mut val = 0_u32;
 
+        val = 0x80000000u32.reverse_bits();
         // TODO
 
         Self(val)

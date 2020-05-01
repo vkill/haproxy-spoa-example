@@ -241,10 +241,10 @@ impl TypedData {
                 buf.extend_from_slice(val.octets().as_ref());
             }
             TypedData::STRING(val) => {
-                val.write_to(&mut buf.to_owned());
+                val.write_to(buf);
             }
             TypedData::BINARY(val) => {
-                val.write_to(&mut buf.to_owned());
+                val.write_to(buf);
             }
         }
         ()

@@ -41,7 +41,8 @@ impl TryFrom<&mut Bytes> for FrameType {
 
 impl FrameType {
     pub fn write_to(self, buf: &mut BytesMut) {
-        buf.put_u8(self.into());
+        let v = self as u8;
+        buf.put_u8(v);
         ()
     }
 }
