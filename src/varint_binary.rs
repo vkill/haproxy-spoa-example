@@ -3,7 +3,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct VarintBinary(Vec<u8>);
 
 impl VarintBinary {

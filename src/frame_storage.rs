@@ -6,7 +6,7 @@ use bytes::{Bytes, BytesMut};
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FrameStorage {
     pub r#type: FrameType,
     pub flags: FrameFlags,

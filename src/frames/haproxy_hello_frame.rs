@@ -55,7 +55,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         let supported_versions_name = &HAProxyHelloFramePayload::supported_versions_name();
         let supported_versions_value: Vec<Option<SupportVersion>> = storage
             .payload
-            .get_kv_value(supported_versions_name)
+            .get_kv_list_value(supported_versions_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 supported_versions_name.to_owned(),
             ))?
@@ -84,7 +84,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         let max_frame_size_name = &HAProxyHelloFramePayload::max_frame_size_name();
         let max_frame_size = storage
             .payload
-            .get_kv_value(max_frame_size_name)
+            .get_kv_list_value(max_frame_size_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 max_frame_size_name.to_owned(),
             ))?
@@ -96,7 +96,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         let capabilities_name = &HAProxyHelloFramePayload::capabilities_name();
         let capabilities_value: Vec<Option<HAProxyHelloFrameCapability>> = storage
             .payload
-            .get_kv_value(capabilities_name)
+            .get_kv_list_value(capabilities_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 capabilities_name.to_owned(),
             ))?
@@ -119,7 +119,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
 
         let mut healthcheck: Option<&bool> = None;
         let healthcheck_name = &HAProxyHelloFramePayload::healthcheck_name();
-        if let Some(healthcheck_value) = storage.payload.get_kv_value(healthcheck_name) {
+        if let Some(healthcheck_value) = storage.payload.get_kv_list_value(healthcheck_name) {
             let healthcheck_value = healthcheck_value.get_bool().ok_or(
                 HAProxyHelloFrameParseError::FieldValueInvalid(healthcheck_name.to_owned()),
             )?;
@@ -129,7 +129,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         let engine_id_name = &HAProxyHelloFramePayload::engine_id_name();
         let engine_id = storage
             .payload
-            .get_kv_value(engine_id_name)
+            .get_kv_list_value(engine_id_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 engine_id_name.to_owned(),
             ))?

@@ -61,19 +61,19 @@ impl From<AgentHelloFrame> for FrameStorage {
         let stream_id = VarintString::new("");
         let frame_id = VarintString::new("");
 
-        let mut h = HashMap::<String, TypedData>::new();
+        let mut h = HashMap::<VarintString, TypedData>::new();
         h.insert(
-            AgentHelloFramePayload::version_name(),
+            VarintString::new(&AgentHelloFramePayload::version_name()),
             TypedData::STRING(VarintString::new(
                 frame.payload.version.to_string().as_str(),
             )),
         );
         h.insert(
-            AgentHelloFramePayload::max_frame_size_name(),
+            VarintString::new(&AgentHelloFramePayload::max_frame_size_name()),
             TypedData::UINT32(frame.payload.max_frame_size),
         );
         h.insert(
-            AgentHelloFramePayload::capabilities_name(),
+            VarintString::new(&AgentHelloFramePayload::capabilities_name()),
             TypedData::STRING(VarintString::new(
                 frame
                     .payload

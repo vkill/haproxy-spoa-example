@@ -2,7 +2,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::TryFrom;
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FrameFlags(u32);
 impl FrameFlags {
     pub fn is_fin(&self) -> bool {

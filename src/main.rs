@@ -1,6 +1,6 @@
 use futures::{SinkExt, TryStreamExt};
 use smol::{Async, Task};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 
 use futures_codec::Framed;
 use log::*;
@@ -20,6 +20,8 @@ mod varint_string;
 pub use varint_string::{VarintString, VarintStringParseError};
 mod typed_data;
 pub use typed_data::{TypedData, TypedDataParseError};
+mod nb_args;
+pub use nb_args::{NBArgs, NBArgsParseError};
 mod support_version;
 pub use support_version::SupportVersion;
 
@@ -73,9 +75,16 @@ async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
         debug!("read bytes: {:?}", bytes);
         let bytes = &mut bytes;
 
-        if let Some(bytes) = frame.handle(bytes)? {
-            info!("write bytes: {:?}", bytes);
-            framed.send(bytes.freeze()).await?;
+        if let (bytes, do_close) = frame.handle(bytes)? {
+            if let Some(bytes) = bytes {
+                info!("write bytes: {:?}", bytes);
+                framed.send(bytes.freeze()).await?;
+            }
+            if do_close {
+                info!("do close");
+
+                todo!()
+            }
         }
     }
 

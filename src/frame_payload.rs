@@ -1,21 +1,30 @@
-use crate::{TypedData, VarintString};
+use crate::{NBArgs, TypedData, VarintString};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[allow(non_camel_case_types)]
 pub enum FramePayload {
-    LIST_OF_MESSAGES,
+    LIST_OF_MESSAGES(HashMap<VarintString, HashMap<VarintString, TypedData>>),
     LIST_OF_ACTIONS,
-    KV_LIST(HashMap<String, TypedData>),
+    KV_LIST(HashMap<VarintString, TypedData>),
 }
 
 impl FramePayload {
-    pub fn get_kv_value(&self, name: &str) -> Option<&TypedData> {
+    pub fn get_list_of_messages(
+        &self,
+    ) -> Option<HashMap<VarintString, HashMap<VarintString, TypedData>>> {
         match self {
-            Self::KV_LIST(v) => v.get(name),
+            Self::LIST_OF_MESSAGES(hash) => Some(hash.to_owned()),
+            _ => None,
+        }
+    }
+
+    pub fn get_kv_list_value(&self, name: &str) -> Option<&TypedData> {
+        match self {
+            Self::KV_LIST(hash) => hash.get(&VarintString::new(name)),
             _ => None,
         }
     }
@@ -34,6 +43,14 @@ pub enum FramePayloadParseError {
     InvalidKvListName,
     #[error("invalid KV_LIST value")]
     InvalidKvListValue,
+    #[error("invalid LIST_OF_MESSAGES message_name")]
+    InvalidListOfMessagesMessageName,
+    #[error("invalid LIST_OF_MESSAGES nb_args")]
+    InvalidListOfMessagesNBArgs,
+    #[error("invalid LIST_OF_MESSAGES KV_LIST name")]
+    InvalidListOfMessagesKvListName,
+    #[error("invalid LIST_OF_MESSAGES KV_LIST value")]
+    InvalidListOfMessagesKvListValue,
 }
 
 impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
@@ -43,10 +60,37 @@ impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
         let (bytes, r#type) = t;
 
         match r#type {
-            FramePayloadType::LIST_OF_MESSAGES => unimplemented!(),
+            FramePayloadType::LIST_OF_MESSAGES => {
+                let mut hash = HashMap::<VarintString, HashMap<VarintString, TypedData>>::new();
+
+                while bytes.len() > 0 {
+                    let name: VarintString = bytes
+                        .try_into()
+                        .map_err(|_| FramePayloadParseError::InvalidListOfMessagesMessageName)?;
+
+                    let nb_args: NBArgs = bytes
+                        .try_into()
+                        .map_err(|_| FramePayloadParseError::InvalidListOfMessagesNBArgs)?;
+
+                    let mut hash_kv = HashMap::<VarintString, TypedData>::new();
+                    for _ in 0..nb_args.val() {
+                        let name: VarintString = bytes
+                            .try_into()
+                            .map_err(|_| FramePayloadParseError::InvalidListOfMessagesKvListName)?;
+                        let value: TypedData = bytes.try_into().map_err(|_| {
+                            FramePayloadParseError::InvalidListOfMessagesKvListValue
+                        })?;
+                        hash_kv.insert(name, value);
+                    }
+
+                    hash.insert(name, hash_kv);
+                }
+
+                Ok(Self::LIST_OF_MESSAGES(hash))
+            }
             FramePayloadType::LIST_OF_ACTIONS => unimplemented!(),
             FramePayloadType::KV_LIST => {
-                let mut maps = HashMap::<String, TypedData>::new();
+                let mut hash = HashMap::<VarintString, TypedData>::new();
 
                 while bytes.len() > 0 {
                     let name: VarintString = bytes
@@ -55,10 +99,10 @@ impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
                     let value: TypedData = bytes
                         .try_into()
                         .map_err(|_| FramePayloadParseError::InvalidKvListValue)?;
-                    maps.insert(name.val().to_owned(), value);
+                    hash.insert(name, value);
                 }
 
-                Ok(Self::KV_LIST(maps))
+                Ok(Self::KV_LIST(hash))
             }
         }
     }
@@ -67,13 +111,24 @@ impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
 impl FramePayload {
     pub fn write_to(&self, buf: &mut BytesMut) {
         match self {
-            Self::KV_LIST(h) => {
-                for (k, v) in h {
-                    VarintString::new(k).write_to(buf);
+            Self::KV_LIST(hash) => {
+                for (k, v) in hash {
+                    k.write_to(buf);
                     v.write_to(buf);
                 }
             }
-            _ => unimplemented!(),
+            FramePayload::LIST_OF_MESSAGES(hash) => {
+                for (k, hash_kv) in hash {
+                    k.write_to(buf);
+                    NBArgs::new(hash_kv.len() as u8).write_to(buf);
+
+                    for (k, v) in hash_kv {
+                        k.write_to(buf);
+                        v.write_to(buf);
+                    }
+                }
+            }
+            FramePayload::LIST_OF_ACTIONS => unimplemented!(),
         }
 
         ()

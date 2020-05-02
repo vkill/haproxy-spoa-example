@@ -47,13 +47,13 @@ impl From<AgentDisconnectFrame> for FrameStorage {
         let stream_id = VarintString::new("");
         let frame_id = VarintString::new("");
 
-        let mut h = HashMap::<String, TypedData>::new();
+        let mut h = HashMap::<VarintString, TypedData>::new();
         h.insert(
-            AgentDisconnectFramePayload::status_code_name(),
+            VarintString::new(&AgentDisconnectFramePayload::status_code_name()),
             TypedData::UINT32(frame.payload.status_code),
         );
         h.insert(
-            AgentDisconnectFramePayload::message_name(),
+            VarintString::new(&AgentDisconnectFramePayload::message_name()),
             TypedData::STRING(VarintString::new(frame.payload.message.as_str())),
         );
         let payload = FramePayload::KV_LIST(h);

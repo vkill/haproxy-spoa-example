@@ -41,7 +41,7 @@ impl TryFrom<FrameStorage> for HAProxyDisconnectFrame {
         let status_code_name = &HAProxyDisconnectFramePayload::status_code_name();
         let status_code = storage
             .payload
-            .get_kv_value(status_code_name)
+            .get_kv_list_value(status_code_name)
             .ok_or(HAProxyDisconnectFrameParseError::FieldNotFound(
                 status_code_name.to_owned(),
             ))?
@@ -53,7 +53,7 @@ impl TryFrom<FrameStorage> for HAProxyDisconnectFrame {
         let message_name = &HAProxyDisconnectFramePayload::message_name();
         let message = storage
             .payload
-            .get_kv_value(message_name)
+            .get_kv_list_value(message_name)
             .ok_or(HAProxyDisconnectFrameParseError::FieldNotFound(
                 message_name.to_owned(),
             ))?

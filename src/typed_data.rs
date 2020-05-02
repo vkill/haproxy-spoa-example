@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use thiserror::Error;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum TypedData {
     NULL,
     BOOL(bool),
