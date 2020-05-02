@@ -42,7 +42,7 @@ impl AgentDisconnectFramePayload {
 
 impl From<AgentDisconnectFrame> for FrameStorage {
     fn from(frame: AgentDisconnectFrame) -> Self {
-        let r#type = FrameType::AGENT_HELLO;
+        let r#type = FrameType::AGENT_DISCONNECT;
         let flags = FrameFlags::new(true, false);
 
         let stream_id = Varint::from(0_u32);

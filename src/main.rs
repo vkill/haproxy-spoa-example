@@ -1,6 +1,7 @@
 use futures::{SinkExt, TryStreamExt};
-use smol::{Async, Task};
+use smol::{Async, Task, Timer};
 use std::net::{TcpListener, TcpStream};
+use std::time::Duration;
 
 use futures_codec::Framed;
 use log::*;
@@ -56,12 +57,14 @@ async fn accept_loop(addr: &str) -> anyhow::Result<()> {
 
     loop {
         let (stream, peer_addr) = listener.accept().await?;
-        println!("Accepted client: {}", peer_addr);
+        info!("Accepted client: {}", peer_addr);
 
         // Spawn a task that echoes messages from the client back to it.
         Task::spawn(async move {
             if let Err(e) = connection_loop(stream).await {
                 error!("connection error: {:?}", e)
+            } else {
+                info!("connection closed")
             }
         })
         .detach();
@@ -81,13 +84,25 @@ async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
 
         if let Some(bytes) = bytes {
             info!("write bytes: {:?}", bytes);
-            framed.send(bytes.freeze()).await?;
+
+            Timer::after(Duration::from_nanos(100)).await;
+
+            framed.send(bytes.freeze()).await.map_err(|e| {
+                error!("on send {:?}", e);
+                e
+            })?;
         }
 
         if do_close {
             info!("do close");
-            framed.flush().await?;
-            framed.close().await?;
+            framed.flush().await.map_err(|e| {
+                error!("on flush {:?}", e);
+                e
+            })?;
+            framed.close().await.map_err(|e| {
+                error!("on close {:?}", e);
+                e
+            })?;
         }
     }
 

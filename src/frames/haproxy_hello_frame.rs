@@ -20,6 +20,7 @@ pub struct HAProxyHelloFramePayload {
 }
 }
 
+// https://github.com/haproxy/haproxy/blob/v2.1.0/src/flt_spoe.c#L446
 #[derive(EnumString, Clone, Debug, Display)]
 #[allow(non_camel_case_types)]
 pub enum HAProxyHelloFrameCapability {
@@ -27,6 +28,8 @@ pub enum HAProxyHelloFrameCapability {
     pipelining,
     #[strum(serialize = "async")]
     r#async,
+    #[strum(serialize = "fragmentation")]
+    fragmentation,
 }
 
 #[derive(Error, Debug)]
