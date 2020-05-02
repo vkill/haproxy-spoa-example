@@ -10,7 +10,7 @@ pub struct HAProxyHelloFrame {
 }
 
 make_frame_kv_list_payload! {
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct HAProxyHelloFramePayload {
     pub supported_versions: Vec<SupportVersion>,
     pub max_frame_size: u32,
@@ -20,7 +20,7 @@ pub struct HAProxyHelloFramePayload {
 }
 }
 
-#[derive(EnumString, Debug, Display)]
+#[derive(EnumString, Clone, Debug, Display)]
 #[allow(non_camel_case_types)]
 pub enum HAProxyHelloFrameCapability {
     #[strum(serialize = "pipelining")]

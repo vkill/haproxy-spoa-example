@@ -1,9 +1,10 @@
 use crate::{
-    AgentDisconnectFrame, AgentDisconnectFramePayload, AgentHelloFrame, AgentHelloFramePayload,
-    FrameKnownError, FrameStorage, FrameStorageParseError, FrameType, HAProxyDisconnectFrame,
-    HAProxyHelloFrame,
+    AckFrame, AckFramePayload, AgentDisconnectFrame, AgentDisconnectFramePayload, AgentHelloFrame,
+    AgentHelloFramePayload, FrameKnownError, FrameStorage, FrameStorageParseError, FrameType,
+    HAProxyDisconnectFrame, HAProxyHelloFrame, NotifyFrame,
 };
 use bytes::{Bytes, BytesMut};
+use log::*;
 use std::convert::TryFrom;
 use thiserror::Error;
 
@@ -24,15 +25,21 @@ pub enum FrameHandleError {
 impl Frame {
     pub fn handle(&self, bytes: &mut Bytes) -> Result<(Option<BytesMut>, bool), FrameHandleError> {
         let frame_storage = FrameStorage::try_from(bytes)?;
+        debug!("read frame_storage: {:?}", frame_storage);
+
+        let mut do_close = false;
 
         let frame_storage_out = match frame_storage.r#type {
             FrameType::HAPROXY_HELLO => {
                 if let Ok(haproxy_hello_frame) = HAProxyHelloFrame::try_from(frame_storage) {
                     let frame = AgentHelloFrame::new(
                         AgentHelloFramePayload::from_haproxy_hello_frame_payload(
-                            haproxy_hello_frame.payload,
+                            haproxy_hello_frame.payload.clone(),
                         ),
                     );
+                    if haproxy_hello_frame.payload.healthcheck == Some(true) {
+                        do_close = true
+                    }
                     Some(FrameStorage::from(frame))
                 } else {
                     let frame = AgentDisconnectFrame::new(
@@ -41,16 +48,20 @@ impl Frame {
                         ),
                     );
 
+                    do_close = true;
                     Some(FrameStorage::from(frame))
                 }
             }
             FrameType::HAPROXY_DISCONNECT => {
-                if let Ok(_) = HAProxyDisconnectFrame::try_from(frame_storage) {
-                    let frame = AgentDisconnectFrame::new(
-                        AgentDisconnectFramePayload::from_frame_known_error(
-                            FrameKnownError::normal,
-                        ),
-                    );
+                if let Ok(haproxy_disconnect_frame) =
+                    HAProxyDisconnectFrame::try_from(frame_storage)
+                {
+                    let frame = AgentDisconnectFrame::new(AgentDisconnectFramePayload::new(
+                        haproxy_disconnect_frame.payload.status_code,
+                        haproxy_disconnect_frame.payload.message,
+                    ));
+
+                    do_close = true;
                     Some(FrameStorage::from(frame))
                 } else {
                     let frame = AgentDisconnectFrame::new(
@@ -59,19 +70,38 @@ impl Frame {
                         ),
                     );
 
+                    do_close = true;
+                    Some(FrameStorage::from(frame))
+                }
+            }
+            FrameType::NOTIFY => {
+                if let Ok(notify_frame) = NotifyFrame::try_from(frame_storage) {
+                    let frame = AckFrame::new(
+                        notify_frame.stream_id,
+                        notify_frame.frame_id,
+                        AckFramePayload::new(vec![]),
+                    );
+
+                    Some(FrameStorage::from(frame))
+                } else {
+                    let frame = AgentDisconnectFrame::new(
+                        AgentDisconnectFramePayload::from_frame_known_error(
+                            FrameKnownError::invalid_frame_received,
+                        ),
+                    );
+
+                    do_close = true;
                     Some(FrameStorage::from(frame))
                 }
             }
             _ => unimplemented!(),
         };
 
-        if let Some(frame_storage_out) = frame_storage_out {
-            Ok((
-                Some(frame_storage_out.clone().into()),
-                frame_storage_out.r#type == FrameType::HAPROXY_DISCONNECT,
-            ))
-        } else {
-            Ok((None, false))
-        }
+        info!(
+            "write frame_storage: {:?}, do_close: {}",
+            frame_storage_out, do_close
+        );
+
+        Ok((frame_storage_out.map(|x| x.into()), do_close))
     }
 }

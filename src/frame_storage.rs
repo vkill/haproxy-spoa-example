@@ -50,7 +50,8 @@ impl TryFrom<&mut Bytes> for FrameStorage {
             FrameType::AGENT_HELLO => (bytes, FramePayloadType::KV_LIST).try_into()?,
             FrameType::AGENT_DISCONNECT => (bytes, FramePayloadType::KV_LIST).try_into()?,
             FrameType::NOTIFY => (bytes, FramePayloadType::LIST_OF_MESSAGES).try_into()?,
-            _ => unimplemented!(),
+            FrameType::ACK => (bytes, FramePayloadType::LIST_OF_ACTIONS).try_into()?,
+            FrameType::UNSET => unimplemented!(),
         };
 
         let frame_storage = Self {

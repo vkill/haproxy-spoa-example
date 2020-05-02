@@ -22,6 +22,8 @@ mod typed_data;
 pub use typed_data::{TypedData, TypedDataParseError};
 mod nb_args;
 pub use nb_args::{NBArgs, NBArgsParseError};
+mod action;
+pub use action::{Action, ActionParseError, ActionType, ActionVarScope};
 mod support_version;
 pub use support_version::SupportVersion;
 
@@ -75,16 +77,17 @@ async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
         debug!("read bytes: {:?}", bytes);
         let bytes = &mut bytes;
 
-        if let (bytes, do_close) = frame.handle(bytes)? {
-            if let Some(bytes) = bytes {
-                info!("write bytes: {:?}", bytes);
-                framed.send(bytes.freeze()).await?;
-            }
-            if do_close {
-                info!("do close");
+        let (bytes, do_close) = frame.handle(bytes)?;
 
-                todo!()
-            }
+        if let Some(bytes) = bytes {
+            info!("write bytes: {:?}", bytes);
+            framed.send(bytes.freeze()).await?;
+        }
+
+        if do_close {
+            info!("do close");
+            framed.flush().await?;
+            framed.close().await?;
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{NBArgs, TypedData, VarintString};
+use crate::{Action, NBArgs, TypedData, VarintString};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -8,7 +8,7 @@ use thiserror::Error;
 #[allow(non_camel_case_types)]
 pub enum FramePayload {
     LIST_OF_MESSAGES(HashMap<VarintString, HashMap<VarintString, TypedData>>),
-    LIST_OF_ACTIONS,
+    LIST_OF_ACTIONS(Vec<Action>),
     KV_LIST(HashMap<VarintString, TypedData>),
 }
 
@@ -18,6 +18,13 @@ impl FramePayload {
     ) -> Option<HashMap<VarintString, HashMap<VarintString, TypedData>>> {
         match self {
             Self::LIST_OF_MESSAGES(hash) => Some(hash.to_owned()),
+            _ => None,
+        }
+    }
+
+    pub fn get_list_of_actions(&self) -> Option<Vec<Action>> {
+        match self {
+            Self::LIST_OF_ACTIONS(actions) => Some(actions.to_owned()),
             _ => None,
         }
     }
@@ -128,7 +135,9 @@ impl FramePayload {
                     }
                 }
             }
-            FramePayload::LIST_OF_ACTIONS => unimplemented!(),
+            FramePayload::LIST_OF_ACTIONS(actions) => {
+                // TODO
+            }
         }
 
         ()

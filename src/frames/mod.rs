@@ -15,3 +15,5 @@ pub use agent_hello_frame::{AgentHelloFrame, AgentHelloFramePayload};
 
 mod agent_disconnect_frame;
 pub use agent_disconnect_frame::{AgentDisconnectFrame, AgentDisconnectFramePayload};
+mod ack_frame;
+pub use ack_frame::{AckFrame, AckFramePayload};
