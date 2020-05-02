@@ -6,8 +6,8 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct NotifyFrame {
     pub flags: FrameFlags,
-    pub stream_id: Varint,
-    pub frame_id: Varint,
+    pub stream_id: Varint, // 0~n
+    pub frame_id: Varint,  // 1~n
 
     pub payload: NotifyFramePayload,
 }
@@ -31,10 +31,6 @@ pub enum NotifyFrameParseError {
 impl TryFrom<FrameStorage> for NotifyFrame {
     type Error = NotifyFrameParseError;
     fn try_from(storage: FrameStorage) -> Result<Self, NotifyFrameParseError> {
-        if storage.stream_id.u64_val() == 0 {
-            // TODO, but is zero
-            // return Err(NotifyFrameParseError::Invalid_STREAM_ID);
-        }
         if storage.frame_id.u64_val() == 0 {
             return Err(NotifyFrameParseError::Invalid_FRAME_ID);
         }
@@ -80,8 +76,6 @@ mod tests {
         assert_eq!(frame_storage.r#type, FrameType::NOTIFY);
         assert_eq!(frame_storage.flags.is_fin(), true);
         assert_eq!(frame_storage.flags.is_abort(), false);
-        // TODO, but is zero
-        // assert_ne!(frame_storage.stream_id.u64_val(), 0);
         assert_ne!(frame_storage.frame_id.u64_val(), 0);
 
         let frame = NotifyFrame::try_from(frame_storage)?;
