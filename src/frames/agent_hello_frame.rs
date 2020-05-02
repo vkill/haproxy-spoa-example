@@ -32,6 +32,8 @@ impl AgentHelloFramePayload {
         max_frame_size: u32,
         capabilities: Vec<HAProxyHelloFrameCapability>,
     ) -> Self {
+        let max_frame_size = max_frame_size.max(256);
+
         Self {
             version,
             max_frame_size,
@@ -42,15 +44,15 @@ impl AgentHelloFramePayload {
     pub fn from_haproxy_hello_frame_payload(
         haproxy_hello_frame_payload: HAProxyHelloFramePayload,
     ) -> Self {
-        Self {
-            version: haproxy_hello_frame_payload
+        Self::new(
+            haproxy_hello_frame_payload
                 .supported_versions
                 .first()
                 .unwrap()
                 .to_owned(),
-            max_frame_size: haproxy_hello_frame_payload.max_frame_size,
-            capabilities: haproxy_hello_frame_payload.capabilities,
-        }
+            haproxy_hello_frame_payload.max_frame_size,
+            haproxy_hello_frame_payload.capabilities,
+        )
     }
 }
 
