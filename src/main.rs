@@ -38,6 +38,9 @@ pub use frame::Frame;
 mod frames;
 pub use frames::*;
 
+mod frame_error;
+pub use frame_error::FrameKnownError;
+
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 

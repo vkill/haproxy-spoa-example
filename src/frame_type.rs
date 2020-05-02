@@ -1,6 +1,6 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::convert::{Into, TryFrom};
+use std::convert::TryFrom;
 use thiserror::Error;
 
 #[derive(IntoPrimitive, TryFromPrimitive, PartialEq, Clone, Debug)]
@@ -41,8 +41,7 @@ impl TryFrom<&mut Bytes> for FrameType {
 
 impl FrameType {
     pub fn write_to(self, buf: &mut BytesMut) {
-        let v = self as u8;
-        buf.put_u8(v);
+        buf.put_u8(self.into());
         ()
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     AgentDisconnectFrame, AgentDisconnectFramePayload, AgentHelloFrame, AgentHelloFramePayload,
-    FrameStorage, FrameStorageParseError, FrameType, HAProxyHelloFrame,
+    FrameKnownError, FrameStorage, FrameStorageParseError, FrameType, HAProxyHelloFrame,
 };
 use bytes::{Bytes, BytesMut};
 use std::convert::TryFrom;
@@ -34,10 +34,11 @@ impl Frame {
                     );
                     Some(FrameStorage::from(frame))
                 } else {
-                    let frame = AgentDisconnectFrame::new(AgentDisconnectFramePayload::new(
-                        4,
-                        "invalid frame received".to_owned(),
-                    ));
+                    let frame = AgentDisconnectFrame::new(
+                        AgentDisconnectFramePayload::from_frame_known_error(
+                            FrameKnownError::invalid_frame_received,
+                        ),
+                    );
 
                     Some(FrameStorage::from(frame))
                 }

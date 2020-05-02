@@ -1,5 +1,8 @@
-use crate::{FrameFlags, FramePayload, FrameStorage, FrameType, TypedData, VarintString};
+use crate::{
+    FrameFlags, FrameKnownError, FramePayload, FrameStorage, FrameType, TypedData, VarintString,
+};
 use std::collections::HashMap;
+use std::string::ToString;
 
 #[derive(Debug)]
 pub struct AgentDisconnectFrame {
@@ -25,6 +28,13 @@ impl AgentDisconnectFramePayload {
         Self {
             status_code,
             message,
+        }
+    }
+
+    pub fn from_frame_known_error(frame_known_error: FrameKnownError) -> Self {
+        Self {
+            status_code: frame_known_error.clone().into(),
+            message: frame_known_error.to_string(),
         }
     }
 }
