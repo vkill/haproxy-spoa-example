@@ -46,6 +46,9 @@ impl TryFrom<&mut Bytes> for FrameStorage {
 
         let payload: FramePayload = match r#type {
             FrameType::HAPROXY_HELLO => (bytes, FramePayloadType::KV_LIST).try_into()?,
+            FrameType::HAPROXY_DISCONNECT => (bytes, FramePayloadType::KV_LIST).try_into()?,
+            FrameType::AGENT_HELLO => (bytes, FramePayloadType::KV_LIST).try_into()?,
+            FrameType::AGENT_DISCONNECT => (bytes, FramePayloadType::KV_LIST).try_into()?,
             _ => unimplemented!(),
         };
 

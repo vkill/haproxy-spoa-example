@@ -1,6 +1,6 @@
 use crate::{
-    AgentHelloFrame, AgentHelloFramePayload, FrameStorage, FrameStorageParseError, FrameType,
-    HAProxyHelloFrame,
+    AgentDisconnectFrame, AgentDisconnectFramePayload, AgentHelloFrame, AgentHelloFramePayload,
+    FrameStorage, FrameStorageParseError, FrameType, HAProxyHelloFrame,
 };
 use bytes::{Bytes, BytesMut};
 use std::convert::TryFrom;
@@ -27,14 +27,19 @@ impl Frame {
         let frame_storage_out = match frame_storage.r#type {
             FrameType::HAPROXY_HELLO => {
                 if let Ok(haproxy_hello_frame) = HAProxyHelloFrame::try_from(frame_storage) {
-                    let agent_hello_frame = AgentHelloFrame::new(
+                    let frame = AgentHelloFrame::new(
                         AgentHelloFramePayload::from_haproxy_hello_frame_payload(
                             haproxy_hello_frame.payload,
                         ),
                     );
-                    Some(FrameStorage::from(agent_hello_frame))
+                    Some(FrameStorage::from(frame))
                 } else {
-                    unimplemented!()
+                    let frame = AgentDisconnectFrame::new(AgentDisconnectFramePayload::new(
+                        4,
+                        "invalid frame received".to_owned(),
+                    ));
+
+                    Some(FrameStorage::from(frame))
                 }
             }
             _ => unimplemented!(),

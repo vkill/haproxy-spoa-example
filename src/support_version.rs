@@ -1,9 +1,13 @@
 use semver::Version;
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct SupportVersion(Version);
 
 impl SupportVersion {
+    pub fn new(v: Version) -> Self {
+        Self(v)
+    }
+
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.trim();
         if let Ok(v) = Version::parse(s).or(Version::parse(format!("{}.0", s).as_ref())) {

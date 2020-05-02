@@ -90,7 +90,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             ))?
             .get_u32()
             .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
-                supported_versions_name.to_owned(),
+                max_frame_size_name.to_owned(),
             ))?;
 
         let capabilities_name = &HAProxyHelloFramePayload::capabilities_name();
@@ -138,6 +138,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
                 engine_id_name.to_owned(),
             ))?
             .val();
+
         let payload = HAProxyHelloFramePayload {
             supported_versions: supported_versions,
             max_frame_size: max_frame_size.to_owned(),
@@ -147,7 +148,6 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         };
 
         let frame = Self { payload };
-
         Ok(frame)
     }
 }
@@ -157,7 +157,12 @@ mod tests {
     use super::*;
     use crate::FrameType;
     use bytes::Bytes;
+    use semver::Version;
     use std::convert::TryInto;
+
+    /*
+    b"\x01\0\0\0\x01\0\0\x12supported-versions\x08\x032.0\x0emax-frame-size\x03\xfc\xf0\x06\x0ccapabilities\x08\x10pipelining,async\tengine-id\x08$6bdec4ec-6b9a-4705-83f4-8817766c0c57"
+    */
 
     #[test]
     fn test_from() -> anyhow::Result<()> {
@@ -176,6 +181,11 @@ mod tests {
 
         let frame = HAProxyHelloFrame::try_from(frame_storage)?;
         println!("{:?}", frame);
+
+        assert_eq!(
+            frame.payload.supported_versions,
+            vec![SupportVersion::new(Version::new(2, 0, 0))]
+        );
 
         Ok(())
     }
