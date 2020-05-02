@@ -56,17 +56,16 @@ impl TryFrom<&mut Bytes> for Varint {
     type Error = VarintParseError;
 
     fn try_from(bytes: &mut Bytes) -> Result<Self, VarintParseError> {
-        let mut val_u64: u64 = 0;
-        let mut n: u8 = 0;
+        let mut _n: u8 = 0;
 
         if bytes.len() < 1 {
             return Err(VarintParseError::InsufficientBytes);
         }
         let b = bytes.split_to(1);
-        n += 1;
+        _n += 1;
         let _val_u8 = b[0];
 
-        val_u64 = _val_u8 as u64;
+        let mut val_u64 = _val_u8 as u64;
 
         if val_u64 >= 240 {
             let mut _r: u8 = 4;
@@ -76,7 +75,7 @@ impl TryFrom<&mut Bytes> for Varint {
                     return Err(VarintParseError::InsufficientBytes);
                 }
                 let b = bytes.split_to(1);
-                n += 1;
+                _n += 1;
                 let _val_u8 = b[0];
 
                 val_u64 += (_val_u8 as u64) << _r;

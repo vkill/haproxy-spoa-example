@@ -58,6 +58,8 @@ pub enum FramePayloadParseError {
     InvalidListOfMessagesKvListName,
     #[error("invalid LIST_OF_MESSAGES KV_LIST value")]
     InvalidListOfMessagesKvListValue,
+    #[error("invalid LIST_OF_ACTIONS")]
+    InvalidListOfActions,
 }
 
 impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
@@ -95,7 +97,17 @@ impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
 
                 Ok(Self::LIST_OF_MESSAGES(hash))
             }
-            FramePayloadType::LIST_OF_ACTIONS => unimplemented!(),
+            FramePayloadType::LIST_OF_ACTIONS => {
+                let mut actions: Vec<Action> = vec![];
+
+                while bytes.len() > 0 {
+                    let action: Action = bytes
+                        .try_into()
+                        .map_err(|_| FramePayloadParseError::InvalidListOfActions)?;
+                    actions.push(action)
+                }
+                Ok(Self::LIST_OF_ACTIONS(actions))
+            }
             FramePayloadType::KV_LIST => {
                 let mut hash = HashMap::<VarintString, TypedData>::new();
 
@@ -136,7 +148,9 @@ impl FramePayload {
                 }
             }
             FramePayload::LIST_OF_ACTIONS(actions) => {
-                // TODO
+                for action in actions {
+                    action.write_to(buf);
+                }
             }
         }
 

@@ -16,7 +16,7 @@ pub struct HAProxyHelloFramePayload {
     pub max_frame_size: u32,
     pub capabilities: Vec<HAProxyHelloFrameCapability>,
     pub healthcheck: Option<bool>,
-    pub engine_id: String,
+    pub engine_id: Option<String>,
 }
 }
 
@@ -137,17 +137,14 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
                 engine_id_name.to_owned(),
             ))?
             .get_string()
-            .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
-                engine_id_name.to_owned(),
-            ))?
-            .val();
+            .map(|x| x.val());
 
         let payload = HAProxyHelloFramePayload {
             supported_versions: supported_versions,
             max_frame_size: max_frame_size.to_owned(),
             capabilities: capabilities,
             healthcheck: healthcheck.map(|x| x.to_owned()),
-            engine_id: engine_id.to_owned(),
+            engine_id: engine_id.map(|x| x.to_owned()),
         };
 
         let frame = Self { payload };

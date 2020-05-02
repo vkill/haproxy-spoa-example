@@ -1,7 +1,8 @@
 use crate::{
-    AckFrame, AckFramePayload, AgentDisconnectFrame, AgentDisconnectFramePayload, AgentHelloFrame,
-    AgentHelloFramePayload, FrameKnownError, FrameStorage, FrameStorageParseError, FrameType,
-    HAProxyDisconnectFrame, HAProxyHelloFrame, NotifyFrame,
+    AckFrame, AckFramePayload, Action, ActionVarScope, AgentDisconnectFrame,
+    AgentDisconnectFramePayload, AgentHelloFrame, AgentHelloFramePayload, FrameKnownError,
+    FrameStorage, FrameStorageParseError, FrameType, HAProxyDisconnectFrame, HAProxyHelloFrame,
+    NotifyFrame, TypedData, VarintString,
 };
 use bytes::{Bytes, BytesMut};
 use log::*;
@@ -79,7 +80,11 @@ impl Frame {
                     let frame = AckFrame::new(
                         notify_frame.stream_id,
                         notify_frame.frame_id,
-                        AckFramePayload::new(vec![]),
+                        AckFramePayload::new(vec![Action::set_val(
+                            ActionVarScope::REQUEST,
+                            VarintString::new("var-name-1"),
+                            TypedData::STRING(VarintString::new("var-value-1")),
+                        )]),
                     );
 
                     Some(FrameStorage::from(frame))
@@ -94,7 +99,8 @@ impl Frame {
                     Some(FrameStorage::from(frame))
                 }
             }
-            _ => unimplemented!(),
+            FrameType::UNSET => unimplemented!(),
+            _ => panic!("not support"),
         };
 
         info!(
