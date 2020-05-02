@@ -1,6 +1,6 @@
 use crate::{
     FrameFlags, FrameFlagsParseError, FramePayload, FramePayloadParseError, FramePayloadType,
-    FrameType, FrameTypeParseError, VarintString,
+    FrameType, FrameTypeParseError, Varint,
 };
 use bytes::{Bytes, BytesMut};
 use std::convert::{TryFrom, TryInto};
@@ -10,8 +10,8 @@ use thiserror::Error;
 pub struct FrameStorage {
     pub r#type: FrameType,
     pub flags: FrameFlags,
-    pub stream_id: VarintString,
-    pub frame_id: VarintString,
+    pub stream_id: Varint,
+    pub frame_id: Varint,
     pub payload: FramePayload,
 }
 
@@ -36,11 +36,11 @@ impl TryFrom<&mut Bytes> for FrameStorage {
         let r#type: FrameType = bytes.try_into()?;
         let flags: FrameFlags = bytes.try_into()?;
 
-        let stream_id: VarintString = bytes
+        let stream_id: Varint = bytes
             .try_into()
             .map_err(|_| FrameStorageParseError::InvalidStreamID)?;
 
-        let frame_id: VarintString = bytes
+        let frame_id: Varint = bytes
             .try_into()
             .map_err(|_| FrameStorageParseError::InvalidFrameID)?;
 
@@ -49,6 +49,7 @@ impl TryFrom<&mut Bytes> for FrameStorage {
             FrameType::HAPROXY_DISCONNECT => (bytes, FramePayloadType::KV_LIST).try_into()?,
             FrameType::AGENT_HELLO => (bytes, FramePayloadType::KV_LIST).try_into()?,
             FrameType::AGENT_DISCONNECT => (bytes, FramePayloadType::KV_LIST).try_into()?,
+            FrameType::NOTIFY => (bytes, FramePayloadType::LIST_OF_MESSAGES).try_into()?,
             _ => unimplemented!(),
         };
 
@@ -70,8 +71,8 @@ impl From<FrameStorage> for BytesMut {
 
         storage.r#type.write_to(&mut buf);
         storage.flags.write_to(&mut buf);
-        storage.stream_id.write_to(&mut buf);
-        storage.frame_id.write_to(&mut buf);
+        buf.extend_from_slice(BytesMut::from(storage.stream_id).as_ref());
+        buf.extend_from_slice(BytesMut::from(storage.frame_id).as_ref());
         storage.payload.write_to(&mut buf);
 
         buf

@@ -1,6 +1,6 @@
 use futures::{SinkExt, TryStreamExt};
 use smol::{Async, Task};
-use std::net::{Shutdown, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 
 use futures_codec::Framed;
 use log::*;

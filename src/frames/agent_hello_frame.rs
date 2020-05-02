@@ -1,6 +1,7 @@
 use super::{HAProxyHelloFrameCapability, HAProxyHelloFramePayload};
 use crate::{
-    FrameFlags, FramePayload, FrameStorage, FrameType, SupportVersion, TypedData, VarintString,
+    FrameFlags, FramePayload, FrameStorage, FrameType, SupportVersion, TypedData, Varint,
+    VarintString,
 };
 use std::collections::HashMap;
 use std::string::ToString;
@@ -58,8 +59,8 @@ impl From<AgentHelloFrame> for FrameStorage {
         let r#type = FrameType::AGENT_HELLO;
         let flags = FrameFlags::new(true, false);
 
-        let stream_id = VarintString::new("");
-        let frame_id = VarintString::new("");
+        let stream_id = Varint::from(0_u32);
+        let frame_id = Varint::from(0_u32);
 
         let mut h = HashMap::<VarintString, TypedData>::new();
         h.insert(

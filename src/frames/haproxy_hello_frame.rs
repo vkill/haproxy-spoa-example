@@ -45,10 +45,10 @@ pub enum HAProxyHelloFrameParseError {
 impl TryFrom<FrameStorage> for HAProxyHelloFrame {
     type Error = HAProxyHelloFrameParseError;
     fn try_from(storage: FrameStorage) -> Result<Self, HAProxyHelloFrameParseError> {
-        if !storage.stream_id.val().is_empty() {
+        if storage.stream_id.u64_val() != 0 {
             return Err(HAProxyHelloFrameParseError::Invalid_STREAM_ID);
         }
-        if !storage.frame_id.val().is_empty() {
+        if storage.frame_id.u64_val() != 0 {
             return Err(HAProxyHelloFrameParseError::Invalid_FRAME_ID);
         }
 
@@ -176,8 +176,8 @@ mod tests {
         assert_eq!(frame_storage.r#type, FrameType::HAPROXY_HELLO);
         assert_eq!(frame_storage.flags.is_fin(), true);
         assert_eq!(frame_storage.flags.is_abort(), false);
-        assert_eq!(frame_storage.stream_id.val(), "");
-        assert_eq!(frame_storage.frame_id.val(), "");
+        assert_eq!(frame_storage.stream_id.u64_val(), 0);
+        assert_eq!(frame_storage.frame_id.u64_val(), 0);
 
         let frame = HAProxyHelloFrame::try_from(frame_storage)?;
         println!("{:?}", frame);

@@ -31,10 +31,10 @@ pub enum HAProxyDisconnectFrameParseError {
 impl TryFrom<FrameStorage> for HAProxyDisconnectFrame {
     type Error = HAProxyDisconnectFrameParseError;
     fn try_from(storage: FrameStorage) -> Result<Self, HAProxyDisconnectFrameParseError> {
-        if !storage.stream_id.val().is_empty() {
+        if storage.stream_id.u64_val() != 0 {
             return Err(HAProxyDisconnectFrameParseError::Invalid_STREAM_ID);
         }
-        if !storage.frame_id.val().is_empty() {
+        if storage.frame_id.u64_val() != 0 {
             return Err(HAProxyDisconnectFrameParseError::Invalid_FRAME_ID);
         }
 
@@ -98,8 +98,8 @@ mod tests {
         assert_eq!(frame_storage.r#type, FrameType::HAPROXY_DISCONNECT);
         assert_eq!(frame_storage.flags.is_fin(), true);
         assert_eq!(frame_storage.flags.is_abort(), false);
-        assert_eq!(frame_storage.stream_id.val(), "");
-        assert_eq!(frame_storage.frame_id.val(), "");
+        assert_eq!(frame_storage.stream_id.u64_val(), 0);
+        assert_eq!(frame_storage.frame_id.u64_val(), 0);
 
         let frame = HAProxyDisconnectFrame::try_from(frame_storage)?;
         println!("{:?}", frame);
