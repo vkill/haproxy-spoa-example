@@ -1,4 +1,4 @@
-use crate::{FrameFlags, FrameStorage, TypedData, Varint, VarintString};
+use crate::{FrameFlags, FrameHeader, FramePayload, TypedData, Varint, VarintString};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use thiserror::Error;
@@ -42,25 +42,26 @@ pub enum NotifyFrameParseError {
     Invalid_Payload,
 }
 
-impl TryFrom<FrameStorage> for NotifyFrame {
+impl TryFrom<(FrameHeader, FramePayload)> for NotifyFrame {
     type Error = NotifyFrameParseError;
-    fn try_from(storage: FrameStorage) -> Result<Self, NotifyFrameParseError> {
-        if storage.frame_id.u64_val() == 0 {
+    fn try_from(t: (FrameHeader, FramePayload)) -> Result<Self, NotifyFrameParseError> {
+        let (frame_header, frame_payload) = t;
+
+        if frame_header.frame_id.u64_val() == 0 {
             return Err(NotifyFrameParseError::Invalid_FRAME_ID);
         }
 
-        let messages = storage
-            .payload
+        let messages = frame_payload
             .get_list_of_messages()
             .ok_or(NotifyFrameParseError::Invalid_Payload)?;
 
         let payload = NotifyFramePayload { messages: messages };
 
         let frame = Self {
-            flags: storage.flags,
-            stream_id: storage.stream_id,
-            frame_id: storage.frame_id,
-            payload,
+            flags: frame_header.flags,
+            stream_id: frame_header.stream_id,
+            frame_id: frame_header.frame_id,
+            payload: payload,
         };
 
         Ok(frame)
@@ -84,15 +85,18 @@ mod tests {
         let mut bytes = Bytes::from_static(bytes);
         let bytes = &mut bytes;
 
-        let frame_storage: FrameStorage = bytes.try_into()?;
-        println!("{:?}", frame_storage);
+        let frame_header: FrameHeader = bytes.try_into()?;
+        println!("{:?}", frame_header);
 
-        assert_eq!(frame_storage.r#type, FrameType::NOTIFY);
-        assert_eq!(frame_storage.flags.is_fin(), true);
-        assert_eq!(frame_storage.flags.is_abort(), false);
-        assert_ne!(frame_storage.frame_id.u64_val(), 0);
+        let frame_payload: FramePayload = (bytes, &frame_header).try_into()?;
+        println!("{:?}", frame_payload);
 
-        let frame = NotifyFrame::try_from(frame_storage)?;
+        assert_eq!(frame_header.r#type, FrameType::NOTIFY);
+        assert_eq!(frame_header.flags.is_fin(), true);
+        assert_eq!(frame_header.flags.is_abort(), false);
+        assert_ne!(frame_header.frame_id.u64_val(), 0);
+
+        let frame = NotifyFrame::try_from((frame_header, frame_payload))?;
         println!("{:?}", frame);
 
         assert_eq!(frame.payload.messages.len(), 1);

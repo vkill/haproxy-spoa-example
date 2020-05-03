@@ -1,4 +1,4 @@
-use crate::{Action, NBArgs, TypedData, VarintString};
+use crate::{Action, FrameHeader, FrameType, NBArgs, TypedData, VarintString};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -62,11 +62,21 @@ pub enum FramePayloadParseError {
     InvalidListOfActions,
 }
 
-impl TryFrom<(&mut Bytes, FramePayloadType)> for FramePayload {
+impl TryFrom<(&mut Bytes, &FrameHeader)> for FramePayload {
     type Error = FramePayloadParseError;
 
-    fn try_from(t: (&mut Bytes, FramePayloadType)) -> Result<Self, FramePayloadParseError> {
-        let (bytes, r#type) = t;
+    fn try_from(t: (&mut Bytes, &FrameHeader)) -> Result<Self, FramePayloadParseError> {
+        let (bytes, frame_header) = t;
+
+        let r#type = match frame_header.r#type {
+            FrameType::HAPROXY_HELLO => FramePayloadType::KV_LIST,
+            FrameType::HAPROXY_DISCONNECT => FramePayloadType::KV_LIST,
+            FrameType::AGENT_HELLO => FramePayloadType::KV_LIST,
+            FrameType::AGENT_DISCONNECT => FramePayloadType::KV_LIST,
+            FrameType::NOTIFY => FramePayloadType::LIST_OF_MESSAGES,
+            FrameType::ACK => FramePayloadType::LIST_OF_ACTIONS,
+            FrameType::UNSET => panic!("not support"),
+        };
 
         match r#type {
             FramePayloadType::LIST_OF_MESSAGES => {

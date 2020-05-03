@@ -1,5 +1,5 @@
 use crate::{
-    FrameFlags, FrameKnownError, FramePayload, FrameStorage, FrameType, TypedData, Varint,
+    FrameFlags, FrameHeader, FrameKnownError, FramePayload, FrameType, TypedData, Varint,
     VarintString,
 };
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl AgentDisconnectFramePayload {
     }
 }
 
-impl From<AgentDisconnectFrame> for FrameStorage {
+impl From<AgentDisconnectFrame> for (FrameHeader, FramePayload) {
     fn from(frame: AgentDisconnectFrame) -> Self {
         let r#type = FrameType::AGENT_DISCONNECT;
         let flags = FrameFlags::new(true, false);
@@ -57,16 +57,15 @@ impl From<AgentDisconnectFrame> for FrameStorage {
             VarintString::new(&AgentDisconnectFramePayload::message_name()),
             TypedData::STRING(VarintString::new(frame.payload.message.as_str())),
         );
-        let payload = FramePayload::KV_LIST(h);
-
-        let frame_storage = Self {
+        let frame_header = FrameHeader {
             r#type,
             flags,
             stream_id,
             frame_id,
-            payload,
         };
 
-        frame_storage
+        let frame_payload = FramePayload::KV_LIST(h);
+
+        (frame_header, frame_payload)
     }
 }

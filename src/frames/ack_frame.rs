@@ -1,4 +1,4 @@
-use crate::{Action, FrameFlags, FramePayload, FrameStorage, FrameType, Varint};
+use crate::{Action, FrameFlags, FrameHeader, FramePayload, FrameType, Varint};
 
 #[derive(Debug)]
 pub struct AckFrame {
@@ -28,7 +28,7 @@ impl AckFramePayload {
     }
 }
 
-impl From<AckFrame> for FrameStorage {
+impl From<AckFrame> for (FrameHeader, FramePayload) {
     fn from(frame: AckFrame) -> Self {
         let r#type = FrameType::ACK;
         let flags = FrameFlags::new(true, false);
@@ -36,16 +36,15 @@ impl From<AckFrame> for FrameStorage {
         let stream_id = frame.stream_id;
         let frame_id = frame.frame_id;
 
-        let payload = FramePayload::LIST_OF_ACTIONS(frame.payload.actions);
-
-        let frame_storage = Self {
+        let frame_header = FrameHeader {
             r#type,
             flags,
             stream_id,
             frame_id,
-            payload,
         };
 
-        frame_storage
+        let frame_payload = FramePayload::LIST_OF_ACTIONS(frame.payload.actions);
+
+        (frame_header, frame_payload)
     }
 }

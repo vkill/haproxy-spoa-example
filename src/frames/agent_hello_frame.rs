@@ -1,6 +1,6 @@
 use super::{HAProxyHelloFrameCapability, HAProxyHelloFramePayload};
 use crate::{
-    FrameFlags, FramePayload, FrameStorage, FrameType, SupportVersion, TypedData, Varint,
+    FrameFlags, FrameHeader, FramePayload, FrameType, SupportVersion, TypedData, Varint,
     VarintString,
 };
 use std::collections::HashMap;
@@ -56,7 +56,7 @@ impl AgentHelloFramePayload {
     }
 }
 
-impl From<AgentHelloFrame> for FrameStorage {
+impl From<AgentHelloFrame> for (FrameHeader, FramePayload) {
     fn from(frame: AgentHelloFrame) -> Self {
         let r#type = FrameType::AGENT_HELLO;
         let flags = FrameFlags::new(true, false);
@@ -88,16 +88,15 @@ impl From<AgentHelloFrame> for FrameStorage {
                     .as_str(),
             )),
         );
-        let payload = FramePayload::KV_LIST(h);
-
-        let frame_storage = Self {
+        let frame_header = FrameHeader {
             r#type,
             flags,
             stream_id,
             frame_id,
-            payload,
         };
 
-        frame_storage
+        let frame_payload = FramePayload::KV_LIST(h);
+
+        (frame_header, frame_payload)
     }
 }

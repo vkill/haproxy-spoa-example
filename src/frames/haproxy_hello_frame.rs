@@ -1,4 +1,4 @@
-use crate::{FrameStorage, SupportVersion};
+use crate::{FrameHeader, FramePayload, SupportVersion};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use strum_macros::EnumString;
@@ -45,19 +45,20 @@ pub enum HAProxyHelloFrameParseError {
     FieldValueInvalid(String),
 }
 
-impl TryFrom<FrameStorage> for HAProxyHelloFrame {
+impl TryFrom<(FrameHeader, FramePayload)> for HAProxyHelloFrame {
     type Error = HAProxyHelloFrameParseError;
-    fn try_from(storage: FrameStorage) -> Result<Self, HAProxyHelloFrameParseError> {
-        if storage.stream_id.u64_val() != 0 {
+    fn try_from(t: (FrameHeader, FramePayload)) -> Result<Self, HAProxyHelloFrameParseError> {
+        let (frame_header, frame_payload) = t;
+
+        if frame_header.stream_id.u64_val() != 0 {
             return Err(HAProxyHelloFrameParseError::Invalid_STREAM_ID);
         }
-        if storage.frame_id.u64_val() != 0 {
+        if frame_header.frame_id.u64_val() != 0 {
             return Err(HAProxyHelloFrameParseError::Invalid_FRAME_ID);
         }
 
         let supported_versions_name = &HAProxyHelloFramePayload::supported_versions_name();
-        let supported_versions_value: Vec<Option<SupportVersion>> = storage
-            .payload
+        let supported_versions_value: Vec<Option<SupportVersion>> = frame_payload
             .get_kv_list_value(supported_versions_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 supported_versions_name.to_owned(),
@@ -85,8 +86,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         }
 
         let max_frame_size_name = &HAProxyHelloFramePayload::max_frame_size_name();
-        let max_frame_size = storage
-            .payload
+        let max_frame_size = frame_payload
             .get_kv_list_value(max_frame_size_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 max_frame_size_name.to_owned(),
@@ -97,8 +97,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             ))?;
 
         let capabilities_name = &HAProxyHelloFramePayload::capabilities_name();
-        let capabilities_value = storage
-            .payload
+        let capabilities_value = frame_payload
             .get_kv_list_value(capabilities_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 capabilities_name.to_owned(),
@@ -129,7 +128,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
 
         let mut healthcheck: Option<&bool> = None;
         let healthcheck_name = &HAProxyHelloFramePayload::healthcheck_name();
-        if let Some(healthcheck_value) = storage.payload.get_kv_list_value(healthcheck_name) {
+        if let Some(healthcheck_value) = frame_payload.get_kv_list_value(healthcheck_name) {
             let healthcheck_value = healthcheck_value.get_bool().ok_or(
                 HAProxyHelloFrameParseError::FieldValueInvalid(healthcheck_name.to_owned()),
             )?;
@@ -137,8 +136,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
         }
 
         let engine_id_name = &HAProxyHelloFramePayload::engine_id_name();
-        let engine_id = storage
-            .payload
+        let engine_id = frame_payload
             .get_kv_list_value(engine_id_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
                 engine_id_name.to_owned(),
@@ -178,16 +176,19 @@ mod tests {
         let mut bytes = Bytes::from_static(bytes);
         let bytes = &mut bytes;
 
-        let frame_storage: FrameStorage = bytes.try_into()?;
-        println!("{:?}", frame_storage);
+        let frame_header: FrameHeader = bytes.try_into()?;
+        println!("{:?}", frame_header);
 
-        assert_eq!(frame_storage.r#type, FrameType::HAPROXY_HELLO);
-        assert_eq!(frame_storage.flags.is_fin(), true);
-        assert_eq!(frame_storage.flags.is_abort(), false);
-        assert_eq!(frame_storage.stream_id.u64_val(), 0);
-        assert_eq!(frame_storage.frame_id.u64_val(), 0);
+        let frame_payload: FramePayload = (bytes, &frame_header).try_into()?;
+        println!("{:?}", frame_payload);
 
-        let frame = HAProxyHelloFrame::try_from(frame_storage)?;
+        assert_eq!(frame_header.r#type, FrameType::HAPROXY_HELLO);
+        assert_eq!(frame_header.flags.is_fin(), true);
+        assert_eq!(frame_header.flags.is_abort(), false);
+        assert_eq!(frame_header.stream_id.u64_val(), 0);
+        assert_eq!(frame_header.frame_id.u64_val(), 0);
+
+        let frame = HAProxyHelloFrame::try_from((frame_header, frame_payload))?;
         println!("{:?}", frame);
 
         assert_eq!(
