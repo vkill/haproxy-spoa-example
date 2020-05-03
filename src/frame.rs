@@ -40,7 +40,7 @@ impl Frame {
                         vec![
                             HAProxyHelloFrameCapability::r#async,
                             HAProxyHelloFrameCapability::pipelining,
-                            HAProxyHelloFrameCapability::fragmentation,
+                            // HAProxyHelloFrameCapability::fragmentation,
                         ],
                     ));
                     if haproxy_hello_frame.payload.healthcheck == Some(true) {

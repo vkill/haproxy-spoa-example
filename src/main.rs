@@ -77,13 +77,13 @@ async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
     let frame = Frame::new();
 
     while let Some(mut bytes) = framed.try_next().await? {
-        debug!("read bytes: {:?}", bytes);
+        debug!("read len: {} bytes: {:?}", bytes.len(), bytes);
         let bytes = &mut bytes;
 
         let (bytes, do_close) = frame.handle(bytes)?;
 
         if let Some(bytes) = bytes {
-            info!("write bytes: {:?}", bytes);
+            info!("write len: {}, bytes: {:?}", bytes.len(), bytes);
 
             Timer::after(Duration::from_nanos(100)).await;
 
