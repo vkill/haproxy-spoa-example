@@ -2,12 +2,12 @@ use bytes::{BufMut, Bytes, BytesMut};
 use std::convert::TryFrom;
 use thiserror::Error;
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 enum VarintStorage {
     U32(u32),
     U64(u64),
 }
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Varint(VarintStorage);
 
 impl From<u32> for Varint {

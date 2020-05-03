@@ -9,5 +9,5 @@ docker run --rm --name haproxy-spoa-example -v $(pwd)/haproxy_conf:/usr/local/et
 ```
 
 ```
-open http://127.0.0.1:6002/
+curl http://127.0.0.1:6002/ -o /dev/null -v
 ```

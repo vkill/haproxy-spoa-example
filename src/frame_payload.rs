@@ -62,13 +62,13 @@ pub enum FramePayloadParseError {
     InvalidListOfActions,
 }
 
-impl TryFrom<(&mut Bytes, &FrameHeader)> for FramePayload {
+impl TryFrom<(&mut Bytes, &FrameType)> for FramePayload {
     type Error = FramePayloadParseError;
 
-    fn try_from(t: (&mut Bytes, &FrameHeader)) -> Result<Self, FramePayloadParseError> {
-        let (bytes, frame_header) = t;
+    fn try_from(t: (&mut Bytes, &FrameType)) -> Result<Self, FramePayloadParseError> {
+        let (bytes, frame_type) = t;
 
-        let r#type = match frame_header.r#type {
+        let r#type = match frame_type {
             FrameType::HAPROXY_HELLO => FramePayloadType::KV_LIST,
             FrameType::HAPROXY_DISCONNECT => FramePayloadType::KV_LIST,
             FrameType::AGENT_HELLO => FramePayloadType::KV_LIST,

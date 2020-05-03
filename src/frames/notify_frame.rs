@@ -88,7 +88,7 @@ mod tests {
         let frame_header: FrameHeader = bytes.try_into()?;
         println!("{:?}", frame_header);
 
-        let frame_payload: FramePayload = (bytes, &frame_header).try_into()?;
+        let frame_payload: FramePayload = (bytes, &frame_header.r#type).try_into()?;
         println!("{:?}", frame_payload);
 
         assert_eq!(frame_header.r#type, FrameType::NOTIFY);

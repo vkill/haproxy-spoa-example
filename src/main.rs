@@ -74,7 +74,7 @@ async fn accept_loop(addr: &str) -> anyhow::Result<()> {
 async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
     let mut framed = Framed::new(stream, FrameCodec());
 
-    let frame = Frame::new();
+    let mut frame = Frame::new();
 
     while let Some(mut bytes) = framed.try_next().await? {
         debug!("read len: {} bytes: {:?}", bytes.len(), bytes);
