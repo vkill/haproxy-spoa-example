@@ -6,9 +6,23 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct NotifyFrame {
     pub flags: FrameFlags,
-    pub stream_id: Varint, // 0~n
-    pub frame_id: Varint,  // 1~n
 
+    /*
+    first req
+        msg-1: stream_id 0 frame_id 1
+        msg-2: stream_id 0 frame_id 2
+    second req
+        msg-1: stream_id 3 frame_id 1
+        msg-2: stream_id 3 frame_id 2
+    third req
+        msg-1: stream_id 6 frame_id 1
+        msg-2: stream_id 6 frame_id 2
+    forth req
+        msg-1: stream_id 9 frame_id 1
+        msg-2: stream_id 9 frame_id 2
+    */
+    pub stream_id: Varint,
+    pub frame_id: Varint,
     pub payload: NotifyFramePayload,
 }
 

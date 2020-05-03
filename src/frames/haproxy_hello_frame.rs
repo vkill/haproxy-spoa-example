@@ -97,7 +97,7 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             ))?;
 
         let capabilities_name = &HAProxyHelloFramePayload::capabilities_name();
-        let capabilities_value: Vec<Option<HAProxyHelloFrameCapability>> = storage
+        let capabilities_value = storage
             .payload
             .get_kv_list_value(capabilities_name)
             .ok_or(HAProxyHelloFrameParseError::FieldNotFound(
@@ -107,10 +107,17 @@ impl TryFrom<FrameStorage> for HAProxyHelloFrame {
             .ok_or(HAProxyHelloFrameParseError::FieldValueInvalid(
                 capabilities_name.to_owned(),
             ))?
-            .val()
-            .split(",")
-            .map(|x| HAProxyHelloFrameCapability::from_str(x.trim()).ok())
-            .collect();
+            .val();
+
+        let capabilities_value: Vec<Option<HAProxyHelloFrameCapability>> =
+            if !capabilities_value.is_empty() {
+                capabilities_value
+                    .split(",")
+                    .map(|x| HAProxyHelloFrameCapability::from_str(x.trim()).ok())
+                    .collect()
+            } else {
+                vec![]
+            };
 
         let mut capabilities: Vec<HAProxyHelloFrameCapability> = vec![];
         for v in capabilities_value {
@@ -162,6 +169,7 @@ mod tests {
 
     /*
     b"\x01\0\0\0\x01\0\0\x12supported-versions\x08\x032.0\x0emax-frame-size\x03\xfc\xf0\x06\x0ccapabilities\x08\x10pipelining,async\tengine-id\x08$6bdec4ec-6b9a-4705-83f4-8817766c0c57"
+    b"\x01\0\0\0\x01\0\0\x12supported-versions\x08\x032.0\x0emax-frame-size\x03\xf0\x01\x0ccapabilities\x08\0\tengine-id\x08$6506a2ee-3942-4be8-a476-ff7550dbc6c3"
     */
 
     #[test]
