@@ -81,7 +81,7 @@ impl Frame {
                         notify_frame.stream_id,
                         notify_frame.frame_id,
                         AckFramePayload::new(vec![Action::set_val(
-                            ActionVarScope::RESPONSE,
+                            ActionVarScope::TRANSACTION,
                             VarintString::new("var_name_1"),
                             TypedData::STRING(VarintString::new("var-value-1")),
                         )]),
