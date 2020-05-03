@@ -159,7 +159,7 @@ impl TryFrom<&mut Bytes> for TypedData {
 
         let v = match r#type {
             TypedDataType::NULL => Self::NULL,
-            TypedDataType::BOOL => Self::BOOL(b[0] & 0b_1000_0000_u8 != 0),
+            TypedDataType::BOOL => Self::BOOL(b[0] & 0b_0001_0000_u8 != 0),
             TypedDataType::INT32 => {
                 let varint = Varint::try_from(bytes).map_err(|e| TypedDataParseError::from(e))?;
                 let val = varint.i32_val().ok_or(TypedDataParseError::Invalid)?;
@@ -218,7 +218,7 @@ impl TypedData {
         match self {
             TypedData::NULL => buf.put_u8(0),
             TypedData::BOOL(val) => buf.put_u8(if true == *val {
-                0b_1000_0001_u8
+                0b_0001_0001_u8
             } else {
                 0b_0000_0001_u8
             }),
@@ -276,7 +276,7 @@ mod tests {
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::BOOL(false));
 
-        let mut bytes = Bytes::from_static(&[0b_1000_0001_u8]);
+        let mut bytes = Bytes::from_static(&[0b_0001_0001_u8]);
         let bytes = &mut bytes;
         let typed_data: TypedData = bytes.try_into()?;
         assert_eq!(typed_data, TypedData::BOOL(true));

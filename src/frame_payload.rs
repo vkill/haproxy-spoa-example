@@ -1,4 +1,4 @@
-use crate::{Action, FrameHeader, FrameType, NBArgs, TypedData, VarintString};
+use crate::{Action, FrameType, NBArgs, TypedData, VarintString};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
