@@ -19,3 +19,7 @@ strum = "0.18.0"
 strum_macros = "0.18.0"
 paste = "0.1.11"
 ctrlc = "3.1.4"
+
+[dev-dependencies]
+duct = "0.13.4"
+tempfile = "3.1.0"
