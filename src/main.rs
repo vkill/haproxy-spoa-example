@@ -1,6 +1,8 @@
 use futures::{SinkExt, TryStreamExt};
 use smol::{Async, Task, Timer};
-use std::net::{TcpListener, TcpStream};
+// use std::net::TcpListener;
+use std::os::unix::net::UnixListener;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use futures_codec::Framed;
@@ -49,15 +51,50 @@ pub use frame_error::FrameKnownError;
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    smol::run(accept_loop("127.0.0.1:6001"))
+    ctrlc::set_handler(|| {
+        let sock_path = PathBuf::new()
+            .join("haproxy_run/spoa_demo.sock")
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        match std::fs::remove_file(&sock_path) {
+            Ok(_) => info!("delete sock done"),
+            Err(e) => error!("delete sock error: {}", e),
+        }
+
+        std::process::exit(0)
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    // smol::run(accept_loop("127.0.0.1:6001"))
+    smol::run(async move {
+        let sock_path = PathBuf::new()
+            .join("haproxy_run/spoa_demo.sock")
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        let r = accept_loop(sock_path.as_str()).await;
+
+        match r {
+            Ok(_) => info!("accept_loop done"),
+            Err(e) => error!("accept_loop error: {}", e),
+        }
+
+        std::fs::remove_file(sock_path)?;
+
+        Ok(())
+    })
 }
 
 async fn accept_loop(addr: &str) -> anyhow::Result<()> {
-    let listener = Async::<TcpListener>::bind(addr)?;
+    // let listener = Async::<TcpListener>::bind(addr)?;
+    let listener = Async::<UnixListener>::bind(addr)?;
 
     loop {
         let (stream, peer_addr) = listener.accept().await?;
-        info!("Accepted client: {}", peer_addr);
+        info!("Accepted client: {:?}", peer_addr);
 
         // Spawn a task that echoes messages from the client back to it.
         Task::spawn(async move {
@@ -71,7 +108,10 @@ async fn accept_loop(addr: &str) -> anyhow::Result<()> {
     }
 }
 
-async fn connection_loop(stream: Async<TcpStream>) -> anyhow::Result<()> {
+async fn connection_loop<S>(stream: Async<S>) -> anyhow::Result<()>
+where
+    S: std::io::Read + std::io::Write,
+{
     let mut framed = Framed::new(stream, FrameCodec());
 
     let mut frame = Frame::new();

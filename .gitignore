@@ -1,3 +1,5 @@
 /target
 /.vscode
 
+/haproxy_run/*.sock
+!/haproxy_run/.keep
