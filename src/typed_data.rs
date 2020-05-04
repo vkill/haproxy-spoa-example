@@ -152,14 +152,12 @@ impl TryFrom<&mut Bytes> for TypedData {
             return Err(TypedDataParseError::InsufficientBytes);
         }
         let b = bytes.split_to(1);
-        let r#type = b[0].wrapping_shl(4).wrapping_shr(4);
-
-        let r#type =
-            TypedDataType::try_from(r#type).map_err(|_| TypedDataParseError::InvalidType)?;
+        let r#type = TypedDataType::try_from(b[0] & 0x0F_u8)
+            .map_err(|_| TypedDataParseError::InvalidType)?;
 
         let v = match r#type {
             TypedDataType::NULL => Self::NULL,
-            TypedDataType::BOOL => Self::BOOL(b[0] & 0b_0001_0000_u8 != 0),
+            TypedDataType::BOOL => Self::BOOL(b[0] & 0x10_u8 == 0x10_u8),
             TypedDataType::INT32 => {
                 let varint = Varint::try_from(bytes).map_err(|e| TypedDataParseError::from(e))?;
                 let val = varint.i32_val().ok_or(TypedDataParseError::Invalid)?;

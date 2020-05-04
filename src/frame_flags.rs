@@ -6,20 +6,33 @@ use thiserror::Error;
 pub struct FrameFlags(u32);
 impl FrameFlags {
     pub fn is_fin(&self) -> bool {
-        self.0.reverse_bits() & 0x80000000u32 != 0
+        self.0 & 0x00000001u32 != 0
     }
     pub fn is_abort(&self) -> bool {
-        self.0.reverse_bits() & 0x40000000u32 != 0
+        self.0 & 0x00000002u32 != 0
     }
 }
 impl FrameFlags {
     pub fn new(is_fin: bool, is_abort: bool) -> Self {
         let mut val = 0_u32;
 
-        val = 0x80000000u32.reverse_bits();
-        // TODO
+        if is_fin {
+            val |= 0x00000001u32;
+        } else {
+            val &= !0x00000001u32;
+        }
+
+        if is_abort {
+            val |= 0x00000002u32;
+        } else {
+            val &= !0x00000002u32;
+        }
 
         Self(val)
+    }
+
+    pub fn val(&self) -> u32 {
+        self.0
     }
 }
 
@@ -65,6 +78,23 @@ impl FrameFlags {
 mod tests {
     use super::*;
     use std::convert::TryInto;
+
+    #[test]
+    fn test_new() -> anyhow::Result<()> {
+        let val = FrameFlags::new(false, false).val();
+        assert_eq!(val, 0);
+
+        let val = FrameFlags::new(true, false).val();
+        assert_eq!(val, 0x00000001u32);
+
+        let val = FrameFlags::new(true, true).val();
+        assert_eq!(val, 0x00000003u32);
+
+        let val = FrameFlags::new(false, true).val();
+        assert_eq!(val, 0x00000002u32);
+
+        Ok(())
+    }
 
     #[test]
     fn test_from() -> anyhow::Result<()> {
